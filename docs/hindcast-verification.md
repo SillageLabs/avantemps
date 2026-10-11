@@ -16,7 +16,7 @@ Une corrélation historique entre El Niño et la pluie ne suffit pas pour prévo
 
 ## Ce que calcule le code
 
-Le banc v0.1 mesure uniquement la pertinence **exploratoire** de probabilités trois catégories : cumuls de pluie sur trois mois sous la normale / proches de la normale / au-dessus de la normale. On compare **un territoire, un modèle et sa version, un mois initial et un horizon** à la fois. Un score n'est produit qu'avec au moins vingt années calendaires distinctes. Cela ne démontre pas leur indépendance statistique.
+Le banc v0.1 mesure uniquement la pertinence **exploratoire** de probabilités trois catégories : cumuls de pluie sur trois mois sous la normale / proches de la normale / au-dessus de la normale. On compare **un territoire, un modèle et sa version, un mois initial et un horizon** à la fois. Un score n'est produit qu'avec au moins vingt années calendaires distinctes et toutes les années de la période déclarée présentes. Cela ne démontre pas leur indépendance statistique.
 
 Chaque paire a une année, trois probabilités dont la somme vaut 1 et un cumul de précipitations observé en millimètres. Les catégories observées sont calculées sur les *autres années uniquement* pour éviter qu'une année testée influence ses propres seuils (leave-one-year-out).
 
@@ -81,3 +81,24 @@ Le résultat JSON contient aussi les empreintes SHA-256 des deux fichiers d'entr
 6. **Aucune activation automatique** : ni probabilité locale publiée, ni alerte, ni classement de risque issu de ce module.
 
 Décision pour le produit : **qualité de prévision territoriale non évaluée** tant qu'aucun jeu de données officiel n'a été acquis et relu par un expert.
+
+
+## Complétude de la période — correction du 11 octobre 2026
+
+Le banc exige une paire par année sur toute la période déclarée dans le manifeste.
+Une période 1993–2016 avec seulement vingt à vingt-trois années ne produit aucun
+score : `status=incomplete_period`, `skill=null`, `missing_years` explicite.
+Sous vingt années, `insufficient_data` reste prioritaire ; la liste des absences
+est également fournie. Aucun remplissage ou exclusion silencieuse.
+
+Une période plus courte, définie avant l'analyse et entièrement couverte, reste
+évaluable si elle atteint vingt années. Ne pas modifier ex post la période pour
+éliminer les années défavorables : la provenance et la justification doivent être
+auditées. Cette règle de complétude est un garde-fou AVANTEMPS, pas une preuve
+que vingt années suffisent scientifiquement ni une obligation attribuée à WMO.
+
+Les appels Python directs `evaluate` vérifient aussi années, trois probabilités,
+somme et précipitations finies/non négatives, sans dépendre d'un import CSV préalable.
+Tests exclusivement SYNTHÉTIQUES : trous de période, vingt années sur vingt-quatre,
+période déclarée complète de vingt ans et entrées invalides par appel direct.
+Aucune compétence réelle mesurée ; accès CDS et revue scientifique restent requis.

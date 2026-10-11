@@ -88,6 +88,36 @@ class VerificationTests(unittest.TestCase):
         self.assertIsNone(report["skill"])
         self.assertFalse(report["publication_authorized"])
 
+    def test_missing_year_prevents_score_even_above_minimum(self):
+        for rows in (sample(20), sample()[:12] + sample()[13:]):
+            with self.subTest(years=len(rows)):
+                report = evaluate(rows, meta())
+                self.assertEqual(report['status'], 'incomplete_period')
+                self.assertIsNone(report['skill'])
+                self.assertFalse(report['period_complete'])
+                self.assertTrue(report['missing_years'])
+                self.assertFalse(report['publication_authorized'])
+
+    def test_direct_evaluation_cannot_bypass_input_validation(self):
+        invalid = [('year', 1992), ('year', True), ('p', (0.2, 0.2, 0.2)),
+                   ('p', (float('nan'), 0, 1)), ('p', (True, 0, 0)),
+                   ('observed_mm', -1), ('observed_mm', float('inf'))]
+        for key, value in invalid:
+            with self.subTest(key=key, value=value):
+                rows = sample()
+                rows[0][key] = value
+                with self.assertRaises(ValueError):
+                    evaluate(rows, meta())
+
+    def test_complete_preregistered_shorter_period_remains_evaluable(self):
+        manifest = meta()
+        manifest['end_year'] = 2012
+        report = evaluate(sample(20), manifest)
+        self.assertEqual(report['status'], 'exploratory_only')
+        self.assertTrue(report['period_complete'])
+        self.assertEqual(report['expected_year_count'], 20)
+        self.assertEqual(report['missing_years'], [])
+
     def test_rejects_invalid_probability_and_duplicate_year(self):
         rows = sample()
         text = csv_data(rows)

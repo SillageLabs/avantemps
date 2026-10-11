@@ -53,5 +53,12 @@ class ValueQualityTests(unittest.TestCase):
                 self.assertFalse(report['publication_authorized'])
                 self.assertEqual(path.read_bytes(), before)
                 self.assertEqual(report['sha256'], metadata['sha256'])
+                # This encoded SYNTHETIC sample is not a seasonal CDS hindcast.
+                from avantemps.cds_requests import plan
+                coverage = audit_grib(path, 'forecast',
+                                      request_plan=plan('ecmwf', '51', 1993, 2016, 11, 1))
+                self.assertEqual(coverage['forecast_coverage']['status'], 'review_required')
+                self.assertGreater(coverage['forecast_coverage']['invalid_message_count'], 0)
+                self.assertFalse(coverage['extraction_approved'])
         finally:
             ec.codes_release(handle)

@@ -104,3 +104,38 @@ Ce module calcule un score RPSS rétrospectif exploratoire ; il ne publie aucune
 ## Pré-audit des GRIB (sans extraction automatique)
 
 Avant d'utiliser les fichiers, effectuer un inventaire en lecture seule via ecCodes : `python3 -m avantemps.grib_audit var/cds-nc/forecast.grib --role forecast` puis `python3 -m avantemps.grib_audit var/cds-nc/observations.grib --role observations`. Voir [les limites de ce pré-audit](grib-preflight.md). Le rapport n'autorise aucune extraction ni publication et ne remplace pas le contrôle des unités et de la grille sur fichiers réels.
+
+## Vérifier l'intégrité locale avant le pré-audit GRIB
+
+Ajout du 11 octobre 2026 :
+
+~~~sh
+python3 -m avantemps.cds_integrity var/cds-nc
+~~~
+
+Cette commande ne se connecte à aucun service et ne modifie aucun fichier. Elle
+vérifie le schéma du manifeste, le plan canonique, les deux rôles et leurs jeux
+de données, les noms fixes des fichiers, la date UTC déclarée, leur taille et
+leur SHA-256 calculé en flux. Les liens symboliques et chemins arbitraires sont
+refusés. Les marqueurs GRIB de début/fin sont vérifiés, mais ne prouvent pas que
+le fichier est entièrement décodable. Le pré-audit ecCodes reste nécessaire.
+
+`status=matches_local_manifest` signifie seulement que les octets correspondent
+au manifeste local. Un manifeste et ses empreintes peuvent être fabriqués
+ensemble ; ce contrôle n'authentifie pas le fournisseur, l'acceptation des
+licences, les dates de collecte ou la validité scientifique. Les quatre champs
+`provider_authenticity_verified`, `scientific_validation_completed`,
+`extraction_approved` et `publication_authorized` restent faux.
+
+Les tests utilisent des octets **SYNTHÉTIQUES NON SCIENTIFIQUES** ; ils couvrent
+altération à taille constante, troncature, mauvais rôles/jeux, chemins, symlinks,
+manifestes invalides et retour CLI. Aucune acquisition réelle pendant ce travail.
+
+Le téléchargement refuse désormais un plan modifié avant de créer un client CDS
+ou un répertoire. Les requêtes restent limitées au protocole expérimental défini.
+L'accès personnel et l'acceptation manuelle des conditions restent requis selon
+la documentation officielle consultée : https://cds.climate.copernicus.eu/how-to-api
+
+Étape suivante inchangée : inspecter les vrais messages puis élaborer et revoir
+le protocole d'extraction spatial/temporel. L'intégrité locale ne lève aucun
+blocage scientifique, et ne déclenche aucun téléchargement ou déploiement.

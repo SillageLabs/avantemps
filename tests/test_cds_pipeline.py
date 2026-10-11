@@ -119,7 +119,7 @@ class DownloadSafetyTests(unittest.TestCase):
         class FakeClient:
             def retrieve(self, dataset, args, target):
                 requested.append(dataset)
-                Path(target).write_bytes(b"GRIB-synthetic-only-" * 10)
+                Path(target).write_bytes(b"GRIB" + b"synthetic-" * 15 + b"7777")
 
         module = types.SimpleNamespace(Client=lambda: FakeClient())
         with tempfile.TemporaryDirectory() as directory:

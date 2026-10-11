@@ -117,6 +117,12 @@ def download(plan_obj: dict, output_dir: Path) -> dict:
         client.retrieve(entry["dataset"], entry["request"], str(target))
         if not target.is_file() or target.stat().st_size < 100:
             raise ValueError(f"Le fournisseur n'a pas créé un fichier exploitable pour {key}")
+        with target.open("rb") as stream:
+            first_bytes = stream.read(4)
+            stream.seek(-4, 2)
+            last_bytes = stream.read(4)
+        if first_bytes != b"GRIB" or last_bytes != b"7777":
+            raise ValueError(f"Réponse CDS non GRIB ou possiblement archive ZIP pour {key} : inspecter le téléchargement")
         digest = hashlib.sha256()
         with target.open("rb") as stream:
             for chunk in iter(lambda: stream.read(1024 * 1024), b""):

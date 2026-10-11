@@ -75,6 +75,14 @@ class ApiTests(unittest.TestCase):
             urlopen(self.base + "/api/unknown", timeout=5)
         self.assertEqual(err.exception.code, 404)
 
+    def test_verification_status_never_publishes_a_score(self):
+        code, data, _ = self.read("/api/verification/status")
+        self.assertEqual(code, 200)
+        self.assertEqual(data["status"], "not_evaluated")
+        self.assertFalse(data["publication_authorized"])
+        self.assertIsNone(data["result"])
+        self.assertEqual(data["scientific_review"], "not_performed")
+
 
 if __name__ == "__main__":
     unittest.main()

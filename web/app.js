@@ -254,3 +254,18 @@ async function setupTerritories() {
 }
 
 setupTerritories();
+
+
+async function refreshVerificationStatus() {
+  const el = $("verification-status");
+  try {
+    const report = await getJSON("/api/verification/status");
+    if (report.status !== "not_evaluated" || report.publication_authorized !== false) {
+      throw Error("Réponse scientifique inattendue");
+    }
+    el.textContent = "Qualité prédictive : non évaluée. Aucune preuve de performance territoriale disponible.";
+  } catch (_) {
+    el.textContent = "Statut de vérification indisponible : aucune prévision n'est affichée.";
+  }
+}
+refreshVerificationStatus();

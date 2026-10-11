@@ -78,6 +78,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 — protocole HTTP stdlib
         url = urlsplit(self.path)
         try:
+            if url.path == "/api/verification/status":
+                self.json_response(200, {
+                    "status": "not_evaluated",
+                    "territory_id": "nouvelle-caledonie",
+                    "metric": "RPSS",
+                    "result": None,
+                    "publication_authorized": False,
+                    "scientific_review": "not_performed",
+                    "method_documentation": "https://github.com/SillageLabs/avantemps/blob/main/docs/hindcast-verification.md",
+                    "message": "Aucun jeu de hindcasts régionaux indépendamment validé : AVANTEMPS n'affiche ni score de qualité ni probabilité de risque."
+                })
+                return
             if url.path == "/api/territories":
                 self.json_response(200, {
                     "territories": list_territories(),

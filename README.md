@@ -15,6 +15,8 @@ AVANTEMPS est un projet libre de SillageLabs : rendre les données climatiques c
 - API HTTP locale en lecture seule et interface mobile simple, sans services tiers ni compte.
 - **Dossiers territoriaux sourcés** : Nouvelle-Calédonie (relations historiques et bulletins datés), Nantes et Guyane (absence d'évaluation explicite). Aucun calcul de risque local.
 - Banc hors ligne expérimental de vérification des prévisions rétrospectives (RPS/RPSS, terciles calculés en laissant l'année cible de côté). **Aucun score régional réel n'est disponible ni publié.**
+- Préparation contrôlée des requêtes historiques Copernicus C3S / ERA5, avec téléchargement optionnel nécessitant des identifiants CDS.
+- Appariement local de séries mensuelles pré-extraites, conversions d'unités (m/s et m/jour vers mm/mois), prise en charge des années bissextiles et validation hors année cible. **L'extraction GRIB directe et la validation réelle restent à faire.**
 - Tests automatiques, fonctionnement sans Docker et sans accès réseau une fois les données récupérées.
 
 Le prototype ne comporte **ni détection de catastrophe, ni prédiction régionale automatisée, ni notification d'urgence**. Les fiches territoriales sont des documents statiques datés, non un suivi en temps réel.
@@ -30,6 +32,10 @@ python3 -m avantemps.server --data-dir var/data --host 127.0.0.1 --port 18767
 ```
 
 Ouvrir ensuite http://127.0.0.1:18767/ . Le serveur ne télécharge aucune donnée : la commande d'ingestion effectue seule la récupération NOAA. Un premier lancement du serveur sans ingestion affiche un message d'absence de données. L'ingestion nécessite un accès sortant HTTPS vers la NOAA. Pour contrôler **sans archiver** un fichier déjà téléchargé : `python3 -m avantemps.ingest --check-file /chemin/RONI.ascii.txt`. Un contrôle de format d'un fichier local ne prouve pas qu'il provient effectivement de la NOAA.
+
+### Préparer l'acquisition C3S / ERA5
+
+Sans accès réseau, le plan de requêtes officielles peut être généré avec `python3 -m avantemps.cds_requests --init-month 11 --lead-month 1`. Il ne télécharge rien par défaut. Le téléchargement via cdsapi nécessite une action explicite et l'acceptation préalable des licences. Voir [le protocole d'acquisition](docs/cds-acquisition.md) pour la suite, dont l'extraction des GRIB (pas encore automatisée).
 
 ### Vérifier des hindcasts hors ligne
 
@@ -59,6 +65,7 @@ Le statut « signal chaud/froid/neutre » ne prouve pas à lui seul un épisode 
 - [Contrat du journal de révisions](docs/revisions.md)
 - [Première enquête territoriale : Nouvelle-Calédonie](docs/territorial-pilot.md)
 - [Banc expérimental de vérification saisonnière](docs/hindcast-verification.md)
+- [Pipeline d'acquisition et d'appariement C3S / ERA5](docs/cds-acquisition.md)
 - [Charte de sûreté et de traçabilité](docs/principles.md)
 - [Différenciation et concurrents](docs/competition.md)
 - [Feuille de route](docs/roadmap.md)

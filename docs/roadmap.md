@@ -26,6 +26,9 @@
 - [x] Affichage d'abstention explicite pour Nantes et Guyane.
 - [ ] Étendre la revue scientifique à des articles évalués et aux séries locales exploitables.
 - [x] Outillage hors ligne de vérification probabiliste expérimentale (RPS/RPSS), avec absence systématique de publication de scores.
+- [x] Générateur de requêtes C3S / ERA5 bornées et téléchargement optionnel documenté (sans clé dans Git).
+- [x] Outil d'appariement de taux de pluie mensuels préparés vers pairs.csv, calibration leave-one-year-out, conversion des unités et gestion des calendriers.
+- [ ] Extraction reproductible GRIB -> tableaux mensuels, audit de la grille et des membres d'ensemble.
 - [ ] Acquisition de vrais hindcasts C3S + observations adaptées ; **aucune mesure réelle de performance territoriale effectuée**.
 - [ ] Audit de la méthodologie hors échantillon et des performances par variable et échéance.
 - [x] Droit d'abstention dans l'API et l'interface pour les territoires non étudiés.

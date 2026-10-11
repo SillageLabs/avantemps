@@ -183,3 +183,10 @@ rectangulaire ne définit ni une commune ni un agrégat terrestre validé. Avant
 extraction : comparer coordonnées réelles, centres, résolution et ordre des
 points ; établir un protocole de regrillage/agrégation revu indépendamment.
 Aucun changement spatial automatique ou calcul scientifique n'est effectué.
+
+
+## Conditions d’utilisation
+
+Voir la [revue datée des licences de données](data-licences.md), qui distingue
+les conditions CDS observées de leur acceptation effective et des droits non
+encore établis sur les séries de stations de Nouvelle-Calédonie.

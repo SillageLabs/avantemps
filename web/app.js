@@ -41,6 +41,49 @@ async function getJSON(route) {
   if (!response.ok) throw Error(data.error || "Service indisponible");
   return data;
 }
+
+function showChanges(payload) {
+  const status = $("revision-status");
+  const list = $("revision-list");
+  list.replaceChildren();
+  if (payload.status === "insufficient_versions") {
+    status.textContent = "Une seule version archivée : les révisions pourront être comparées après une prochaine modification du fichier source.";
+    return;
+  }
+  const result = payload.comparison;
+  const c = result.counts;
+  status.textContent = [
+    c.revised + " saison(s) corrigée(s)",
+    c.added + " ajoutée(s)",
+    c.removed + " retirée(s)"
+  ].join(" · ") + " entre deux versions du fichier NOAA.";
+  if (!result.changes.length) {
+    const item = document.createElement("li");
+    item.textContent = "Le fichier a changé, mais aucune valeur chiffrée n'a été modifiée.";
+    list.append(item);
+    return;
+  }
+  // Les plus récentes en premier. On indique uniquement les changements entre ARCHIVES.
+  result.changes.slice(-12).reverse().forEach(entry => {
+    const item = document.createElement("li");
+    const label = entry.season + " " + entry.year + " : ";
+    if (entry.type === "revised") {
+      item.textContent = label + "révision de " + entry.old_anomaly_c +
+        " à " + entry.new_anomaly_c + " °C (" +
+        (entry.delta_c > 0 ? "+" : "") + entry.delta_c + " °C).";
+    } else if (entry.type === "added") {
+      item.textContent = label + "nouvelle observation : " + entry.new_anomaly_c + " °C.";
+    } else {
+      item.textContent = label + "observation absente de la nouvelle version.";
+    }
+    list.append(item);
+  });
+  if (result.changes.length > 12) {
+    const item = document.createElement("li");
+    item.textContent = (result.changes.length - 12) + " autre(s) changement(s) disponible(s) via l'API.";
+    list.append(item);
+  }
+}
 async function refresh() {
   $("loading").hidden = false;
   $("loading").textContent = "Chargement des données locales…";
@@ -57,18 +100,29 @@ async function refresh() {
     $("signal-label").textContent = labels[current.summary.signal] || "Signal non déterminé";
     const delta = current.summary.delta_from_previous_c;
     $("comparison").textContent = delta === null ? "Aucune valeur antérieure." : "Écart avec la saison précédente : " + (delta > 0 ? "+" : "") + Number(delta).toLocaleString("fr-FR") + " °C.";
-    $("collected").textContent = new Date(current.retrieved_at_utc).toLocaleString("fr-FR", {dateStyle: "medium", timeStyle: "short", timeZone: "UTC"}) + " UTC (date de récupération)";
+    const asUTC = value => new Date(value).toLocaleString("fr-FR", {dateStyle: "medium", timeStyle: "short", timeZone: "UTC"}) + " UTC";
+    $("collected").textContent = asUTC(current.last_checked_at_utc || current.retrieved_at_utc);
+    $("first-collected").textContent = asUTC(current.retrieved_at_utc);
     $("digest").textContent = current.id.slice(0, 16) + "…";
     $("versions").textContent = String(archive.versions.length);
     draw(history.records);
     $("loading").hidden = true;
     $("observation").hidden = false;
+    try {
+      showChanges(await getJSON("/api/roni/changes"));
+    } catch (error) {
+      $("revision-status").textContent = "Comparaison indisponible : " + error.message;
+      $("revision-list").replaceChildren();
+    }
   } catch (error) {
     $("loading").hidden = false;
     $("loading").textContent = "Données indisponibles : " + error.message + " Aucun chiffre n'est simulé.";
     $("chart").replaceChildren();
     $("chart-fallback").textContent = "Aucune courbe à afficher.";
     $("collected").textContent = "—";
+    $("first-collected").textContent = "—";
+    $("revision-status").textContent = "Comparaison indisponible sans archive valide.";
+    $("revision-list").replaceChildren();
     $("digest").textContent = "—";
     $("versions").textContent = "—";
   }

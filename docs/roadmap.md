@@ -13,8 +13,9 @@
 
 ## P1 : traçabilité et compréhension
 
-- [ ] Différences entre deux versions d'une même saison et dates de correction.
-- [ ] Historique consultable, export réutilisable.
+- [x] Différences entre deux versions d'une même saison, dates de première collecte et historique local (issue #3).
+- [x] Comparaison consultable via API et panneau mobile.
+- [ ] Export complet documenté et visualisation du parcours des révisions sur plus de deux versions.
 - [ ] Glossaire ENSO et évaluation de compréhension avec utilisateurs.
 - [ ] Diagnostic ENSO officiel distinct des valeurs de l'indice.
 

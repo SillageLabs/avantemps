@@ -45,6 +45,12 @@
         <p id="chart-fallback" class="muted small">Le graphique sera visible après importation des données.</p>
       </div>
     </section>
+    <section class="panel revisions" aria-labelledby="revision-title">
+      <div class="panel-head"><h2 id="revision-title">Journal des révisions scientifiques</h2><span class="muted small">Comparaison entre publications</span></div>
+      <p id="revision-status" role="status">Recherche d'archives comparables…</p>
+      <ul id="revision-list" class="revision-list"></ul>
+      <p class="muted small">Ces modifications concernent le fichier de données NOAA. Ce ne sont ni des alertes, ni les variations climatiques entre deux saisons.</p>
+    </section>
     <section class="two-columns">
       <article class="panel">
         <h2>D'où viennent ces chiffres ?</h2>
@@ -52,7 +58,8 @@
         <p>Les observations récentes peuvent être corrigées après publication. AVANTEMPS enregistre les fichiers sources successifs pour rendre les différences vérifiables.</p>
         <dl class="metadata">
           <dt>Source</dt><dd><a href="https://www.cpc.ncep.noaa.gov/data/indices/RONI.ascii.txt" rel="noopener noreferrer" target="_blank">NOAA/CPC — données originales</a></dd>
-          <dt>Collecte locale</dt><dd id="collected">—</dd>
+          <dt>Dernière vérification réussie</dt><dd id="collected">—</dd>
+          <dt>Première collecte de cette version</dt><dd id="first-collected">—</dd>
           <dt>Archive SHA-256</dt><dd id="digest">—</dd>
           <dt>Versions conservées</dt><dd id="versions">—</dd>
         </dl>

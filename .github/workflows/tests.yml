@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, "feat/**"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,3 +22,37 @@ jobs:
         run: python -m compileall -q avantemps tests
       - name: Tests unitaires (sans accès météo réseau)
         run: python -m unittest discover -s tests -v
+
+  live-noaa-smoke:
+    # Non bloquant : l'indisponibilité NOAA ne doit pas masquer les tests du code.
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Essai HTTPS du vrai fichier NOAA et archivage temporaire
+        id: noaa
+        continue-on-error: true
+        run: |
+          python -m avantemps.ingest --data-dir "$RUNNER_TEMP/avantemps-noaa"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "avantemps-noaa"
+          data = json.loads((root / "latest.json").read_text())
+          record = json.loads((root / "snapshots" / (data["snapshot_id"] + ".json")).read_text())
+          assert record["summary"]["observation_count"] >= 840
+          print("NOAA live OK:", record["summary"]["latest"], record["id"][:12])
+          PY
+      - name: Résultat du contrôle externe
+        if: always()
+        env:
+          NOAARESULT: ${{ steps.noaa.outcome }}
+        run: |
+          echo "Live NOAA: $NOAARESULT"
+          if [ "$NOAARESULT" != "success" ]; then
+            echo "::warning::Collecte NOAA non validée durant cet essai : voir les logs; le pipeline reste non bloquant."
+          fi

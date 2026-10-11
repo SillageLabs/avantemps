@@ -33,3 +33,9 @@ Selon la documentation C3S, leur qualité dépend du lieu, de la variable, de l'
 - Échec de téléchargement/format : garder l'ancienne archive, ne pas remplacer par des données fictives.
 - Sans fichier initial : montrer « aucune donnée chargée », jamais une valeur simulée présentée comme réelle.
 - Les dates d'ingestion ne sont **pas** des dates de publication NOAA ; ne pas les confondre.
+
+## Contrôle du format (11 octobre 2026)
+
+Le fichier brut NOAA consultable à l'URL officielle présente bien l'en-tête `SEAS YR ANOM`, une série ordonnée commençant en DJF 1950 et, à la date du contrôle, une dernière ligne `JAS 2026 1.69` (+1,69 °C). Cette observation ne représente **pas** une probabilité de catastrophe. Référence : https://www.cpc.ncep.noaa.gov/data/indices/RONI.ascii.txt
+
+Nous avons vérifié le format et la documentation en ligne ; l'exécution complète du collecteur sur réseau doit être validée indépendamment. Le pipeline GitHub comprend un essai réseau non bloquant pour détecter les problèmes du fournisseur sans fragiliser les tests hors ligne.

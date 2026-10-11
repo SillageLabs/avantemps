@@ -31,32 +31,48 @@ class ApiTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def read(self, path):
-        with urlopen(self.base + path) as response:
+        with urlopen(self.base + path, timeout=5) as response:
             return response.status, json.load(response), response.headers
 
-    def test_health_and_unavailable(self):
+    def test_empty_and_invalid(self):
         status, data, _ = self.read("/api/health")
         self.assertEqual(status, 200)
         self.assertFalse(data["has_data"])
         with self.assertRaises(HTTPError) as err:
-            urlopen(self.base + "/api/roni/latest")
+            urlopen(self.base + "/api/roni/latest", timeout=5)
         self.assertEqual(err.exception.code, 503)
 
-    def test_api_read_only_and_sources(self):
-        store_snapshot(self.data_dir, fixture(), datetime(2026, 10, 11, tzinfo=timezone.utc))
+    def test_comparison_and_provenance(self):
+        t1 = datetime(2026, 10, 11, tzinfo=timezone.utc)
+        old = store_snapshot(self.data_dir, fixture(), t1)
+        _, empty, _ = self.read("/api/roni/changes")
+        self.assertEqual(empty["status"], "insufficient_versions")
+        store_snapshot(self.data_dir, fixture(change=0.1, extra=True), t1)
         _, latest, headers = self.read("/api/roni/latest")
         self.assertEqual(latest["index_name"], "RONI")
         self.assertIn("cpc.ncep.noaa.gov", latest["source_url"])
         self.assertEqual(headers.get("Cache-Control"), "no-store")
+        self.assertEqual(latest["last_checked_at_utc"], t1.isoformat())
         _, history, _ = self.read("/api/roni/history?limit=3")
         self.assertEqual(len(history["records"]), 3)
         _, versions, _ = self.read("/api/roni/versions")
-        self.assertEqual(len(versions["versions"]), 1)
+        self.assertEqual(len(versions["versions"]), 2)
+        _, revision, _ = self.read("/api/roni/changes")
+        self.assertEqual(revision["status"], "ok")
+        self.assertEqual(revision["comparison"]["counts"]["revised"], 1)
+        self.assertEqual(revision["comparison"]["counts"]["added"], 1)
+        self.assertEqual(revision["comparison"]["from"]["id"], old["id"])
         with self.assertRaises(HTTPError) as err:
-            urlopen(self.base + "/api/roni/history?limit=999")
+            urlopen(self.base + "/api/roni/history?limit=999", timeout=5)
         self.assertEqual(err.exception.code, 400)
         with self.assertRaises(HTTPError) as err:
-            urlopen(self.base + "/api/missing")
+            urlopen(self.base + "/api/roni/changes?before=wrong&after=wrong", timeout=5)
+        self.assertEqual(err.exception.code, 400)
+        with self.assertRaises(HTTPError) as err:
+            urlopen(self.base + "/api/roni/changes?before=" + old["id"], timeout=5)
+        self.assertEqual(err.exception.code, 400)
+        with self.assertRaises(HTTPError) as err:
+            urlopen(self.base + "/api/unknown", timeout=5)
         self.assertEqual(err.exception.code, 404)
 
 

@@ -10,7 +10,8 @@ AVANTEMPS est un projet libre de SillageLabs : rendre les données climatiques c
 
 - Ingestion manuelle de l'indice **RONI** (NOAA/CPC), nouveau référentiel ENSO opérationnel depuis 2026.
 - Validation stricte du fichier source officiel, conservation de la version brute et de son empreinte SHA-256.
-- Archives immuables des versions de données, afin d'identifier les révisions.
+- Archives immuables avec contrôle d'intégrité SHA-256 et date de dernière vérification indépendante de la date de première collecte.
+- Journal des ajouts, retraits et corrections des observations entre deux versions, visible dans l'interface.
 - API HTTP locale en lecture seule et interface mobile simple, sans services tiers ni compte.
 - Tests automatiques, fonctionnement sans Docker et sans accès réseau une fois les données récupérées.
 
@@ -26,7 +27,7 @@ python3 -m avantemps.ingest --data-dir var/data
 python3 -m avantemps.server --data-dir var/data --host 127.0.0.1 --port 18767
 ```
 
-Ouvrir ensuite http://127.0.0.1:18767/ . Le serveur ne télécharge aucune donnée : la commande d'ingestion effectue seule la récupération NOAA. Un premier lancement du serveur sans ingestion affiche un message d'absence de données. L'ingestion nécessite un accès sortant HTTPS vers la NOAA.
+Ouvrir ensuite http://127.0.0.1:18767/ . Le serveur ne télécharge aucune donnée : la commande d'ingestion effectue seule la récupération NOAA. Un premier lancement du serveur sans ingestion affiche un message d'absence de données. L'ingestion nécessite un accès sortant HTTPS vers la NOAA. Pour contrôler **sans archiver** un fichier déjà téléchargé : `python3 -m avantemps.ingest --check-file /chemin/RONI.ascii.txt`. Un contrôle de format d'un fichier local ne prouve pas qu'il provient effectivement de la NOAA.
 
 ### API
 
@@ -34,6 +35,8 @@ Ouvrir ensuite http://127.0.0.1:18767/ . Le serveur ne télécharge aucune donn�
 - `GET /api/roni/latest` : dernier indice disponible, provenance et précautions.
 - `GET /api/roni/history?limit=24` : observations historiques récentes (maximum 120).
 - `GET /api/roni/versions` : versions archivées du fichier NOAA.
+- `GET /api/roni/changes` : différences entre les deux versions pertinentes les plus récentes, ou statut indiquant qu'une seule version est disponible.
+- `GET /api/roni/changes?before=<sha256>&after=<sha256>` : comparaison explicite de deux archives existantes.
 
 Le statut « signal chaud/froid/neutre » ne prouve pas à lui seul un épisode ENSO : l'atmosphère, la persistance et les bulletins d'experts comptent aussi. Les dernières données peuvent être révisées par la NOAA. Les saisons (`DJF`, `NDJ`, etc.) sont reprises **telles quelles** depuis la source.
 
@@ -41,6 +44,7 @@ Le statut « signal chaud/froid/neutre » ne prouve pas à lui seul un épisode 
 
 - [Vision et non-objectifs](docs/vision.md)
 - [Sources et qualité scientifique](docs/sources.md)
+- [Contrat du journal de révisions](docs/revisions.md)
 - [Charte de sûreté et de traçabilité](docs/principles.md)
 - [Différenciation et concurrents](docs/competition.md)
 - [Feuille de route](docs/roadmap.md)

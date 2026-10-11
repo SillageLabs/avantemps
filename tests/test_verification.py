@@ -54,7 +54,7 @@ class VerificationTests(unittest.TestCase):
         self.assertAlmostEqual(report["skill"]["value"], 0, places=5)
         self.assertFalse(report["publication_authorized"])
         self.assertEqual(report["scientific_review"], "not_performed")
-        self.assertEqual(report["n_independent_years"], 24)
+        self.assertEqual(report["n_distinct_years"], 24)
 
     def test_perfect_synthetic_oracle_scores_one_not_permission(self):
         rows = sample()
@@ -127,6 +127,8 @@ class VerificationTests(unittest.TestCase):
             (base / "pairs.csv").write_text(csv_data(sample()), encoding="utf-8")
             report = run(base / "meta.json", base / "pairs.csv")
             self.assertEqual(report["status"], "exploratory_only")
+            self.assertEqual(len(report["input_sha256"]["manifest"]), 64)
+            self.assertEqual(len(report["input_sha256"]["pairs"]), 64)
             self.assertFalse((base / "report.json").exists())
 
 

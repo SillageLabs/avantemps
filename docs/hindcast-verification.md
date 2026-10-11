@@ -16,7 +16,7 @@ Une corrélation historique entre El Niño et la pluie ne suffit pas pour prévo
 
 ## Ce que calcule le code
 
-Le banc v0.1 mesure uniquement la pertinence **exploratoire** de probabilités trois catégories : cumuls de pluie sur trois mois sous la normale / proches de la normale / au-dessus de la normale. On compare **un territoire, un modèle et sa version, un mois initial et un horizon** à la fois. Un score n'est produit qu'avec au moins vingt années d'observations indépendantes.
+Le banc v0.1 mesure uniquement la pertinence **exploratoire** de probabilités trois catégories : cumuls de pluie sur trois mois sous la normale / proches de la normale / au-dessus de la normale. On compare **un territoire, un modèle et sa version, un mois initial et un horizon** à la fois. Un score n'est produit qu'avec au moins vingt années calendaires distinctes. Cela ne démontre pas leur indépendance statistique.
 
 Chaque paire a une année, trois probabilités dont la somme vaut 1 et un cumul de précipitations observé en millimètres. Les catégories observées sont calculées sur les *autres années uniquement* pour éviter qu'une année testée influence ses propres seuils (leave-one-year-out).
 
@@ -69,13 +69,13 @@ Commande hors ligne à la racine du dépôt :
 python3 -m avantemps.verification --manifest ./manifest.json --pairs ./pairs.csv
 ~~~
 
-Le résultat JSON est imprimé en console. Aucun fichier n'est écrit ni aucune donnée chiffrée publiée via l'API. Le champ publication_authorized est **toujours faux**, même si le RPSS est positif.
+Le résultat JSON contient aussi les empreintes SHA-256 des deux fichiers d'entrée, pour en documenter exactement les versions. Il est imprimé en console. Aucun fichier n'est écrit ni aucune donnée chiffrée publiée via l'API. Le champ publication_authorized est **toujours faux**, même si le RPSS est positif.
 
 ## Limitations de sécurité scientifique
 
 1. **Couverture spatiale** : les produits C3S distribués à 1° × 1° ne sont pas des prévisions à l'échelle d'une commune ou d'une vallée ; la topographie locale importe en Nouvelle-Calédonie.
 2. **Observations** : ERA5 à maille large n'est pas une station de pluie locale ; le choix du référentiel doit être documenté.
-3. **Validation** : vingt années constituent seulement un seuil exploratoire d'utilisation du code, pas une garantie de puissance statistique.
+3. **Validation** : vingt années distinctes constituent seulement un seuil exploratoire d'utilisation du code, pas une garantie d'indépendance, de puissance statistique ou de validité des prédictions.
 4. **Échantillons dépendants, multiplicité des essais, biais, dispersion** : le bootstrap de base ne les corrige pas automatiquement.
 5. **Provenance et licence** : la présence d'une URL et d'une déclaration de validation croisée n'atteste ni l'origine réelle ni le droit de redistribution.
 6. **Aucune activation automatique** : ni probabilité locale publiée, ni alerte, ni classement de risque issu de ce module.

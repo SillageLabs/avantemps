@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import hashlib
 import json
 import math
 import random
@@ -140,7 +141,7 @@ def evaluate(rows: list[dict], meta: dict) -> dict:
         "system_version": meta["system_version"],
         "initialization_month": meta["initialization_month"],
         "lead_month": meta["lead_month"],
-        "n_independent_years": len(rows),
+        "n_distinct_years": len(rows),
         "minimum_years": MIN_YEARS,
         "reference": "equiprobable climatology (1/3 each)",
         "method": "RPS on LOYO observed terciles; paired yearly bootstrap",
@@ -181,7 +182,12 @@ def run(manifest: Path, pairs: Path) -> dict:
         raise ValueError("Fichier d'entrée trop volumineux")
     meta = validate_manifest(json.loads(meta_bytes.decode("utf-8")))
     rows = parse_pairs(pairs_bytes.decode("utf-8-sig"), meta)
-    return evaluate(rows, meta)
+    report = evaluate(rows, meta)
+    report["input_sha256"] = {
+        "manifest": hashlib.sha256(meta_bytes).hexdigest(),
+        "pairs": hashlib.sha256(pairs_bytes).hexdigest(),
+    }
+    return report
 
 
 def main() -> int:

@@ -1,0 +1,8 @@
+[project]
+name = "avantemps"
+version = "0.1.0"
+description = "Prototype de suivi scientifique du RONI NOAA, SillageLabs"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["avantemps"]

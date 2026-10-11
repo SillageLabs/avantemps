@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#103047">
+  <meta name="description" content="AVANTEMPS : observatoire citoyen des signaux climatiques, expérimental et sourcé.">
+  <title>AVANTEMPS — Observatoire climatique</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a href="#contenu" class="skip">Aller au contenu</a>
+  <header class="top">
+    <div class="header-inner">
+      <div class="identity"><span class="mark" aria-hidden="true">≈</span><span>AVANTEMPS</span></div>
+      <span class="research-tag">PROTOTYPE DE RECHERCHE</span>
+    </div>
+  </header>
+  <main id="contenu">
+    <section class="hero">
+      <p class="eyebrow">OBSERVATOIRE CLIMATIQUE CITOYEN · SILLAGELABS</p>
+      <h1>Comprendre les signaux.<br><em>Préparer les territoires.</em></h1>
+      <p class="intro">Suivons l'évolution d'El Niño et La Niña à partir des observations scientifiques, avec leurs sources, leurs limites et leurs révisions.</p>
+    </section>
+    <aside class="notice" role="note">
+      <strong>Ce service n'émet aucune alerte.</strong>
+      Le RONI est un indice climatique mondial, pas une prévision de catastrophe locale. Pour une situation dangereuse, consultez les bulletins des autorités compétentes.
+    </aside>
+    <section class="grid" aria-label="Suivi du RONI">
+      <div class="panel current">
+        <div class="panel-head"><h2>Signal océanique RONI</h2><span class="dot" aria-hidden="true"></span></div>
+        <p id="loading" role="status">Chargement des données locales…</p>
+        <div id="observation" hidden>
+          <div class="reading"><strong id="index-value">—</strong><span>°C</span></div>
+          <div class="signal" id="signal-label">—</div>
+          <p id="season-label" class="muted">—</p>
+          <p id="comparison"></p>
+          <p class="muted small">Signal de l'indice uniquement. Une phase ENSO ne se détermine pas à partir de cette seule valeur.</p>
+        </div>
+      </div>
+      <div class="panel history">
+        <div class="panel-head"><h2>Évolution récente</h2><span class="muted small">36 saisons glissantes</span></div>
+        <svg id="chart" role="img" aria-label="Graphique des dernières valeurs RONI" viewBox="0 0 720 290" preserveAspectRatio="xMidYMid meet"></svg>
+        <p id="chart-fallback" class="muted small">Le graphique sera visible après importation des données.</p>
+      </div>
+    </section>
+    <section class="two-columns">
+      <article class="panel">
+        <h2>D'où viennent ces chiffres ?</h2>
+        <p>Le Climate Prediction Center de la NOAA publie l'indice relatif RONI, moyenne glissante sur trois mois. Il décrit une partie de l'état du système océanique tropical.</p>
+        <p>Les observations récentes peuvent être corrigées après publication. AVANTEMPS enregistre les fichiers sources successifs pour rendre les différences vérifiables.</p>
+        <dl class="metadata">
+          <dt>Source</dt><dd><a href="https://www.cpc.ncep.noaa.gov/data/indices/RONI.ascii.txt" rel="noopener noreferrer" target="_blank">NOAA/CPC — données originales</a></dd>
+          <dt>Collecte locale</dt><dd id="collected">—</dd>
+          <dt>Archive SHA-256</dt><dd id="digest">—</dd>
+          <dt>Versions conservées</dt><dd id="versions">—</dd>
+        </dl>
+      </article>
+      <article class="panel">
+        <h2>Ce que ce prototype ne dit pas</h2>
+        <p>Une anomalie RONI ne suffit pas à déclarer officiellement El Niño ou La Niña ; il faut aussi examiner la circulation atmosphérique et la durée de l'épisode.</p>
+        <p>Les impacts régionaux et les prévisions saisonnières doivent être évalués séparément, territoire par territoire. Cette étape est volontairement absente.</p>
+        <p><a href="https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/" target="_blank" rel="noopener noreferrer">Lire la méthode NOAA ↗</a></p>
+      </article>
+    </section>
+    <div class="actions"><button type="button" id="refresh">Actualiser l'affichage</button><p class="muted small">Actualiser ne télécharge pas de nouvelles données NOAA : seule la commande d'ingestion le fait.</p></div>
+  </main>
+  <footer>AVANTEMPS · SillageLabs · Prototype non opérationnel · <a href="https://github.com/SillageLabs/avantemps">Code et documentation sur GitHub</a></footer>
+</body>
+</html>

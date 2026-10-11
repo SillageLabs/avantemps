@@ -91,6 +91,21 @@ def plan(centre: str, system: str, first: int, last: int,
     }
 
 
+def validate_plan(plan_obj: dict) -> None:
+    """Reject altered requests before any CDS client or filesystem write."""
+    if not isinstance(plan_obj, dict):
+        raise ValueError("Plan CDS invalide")
+    try:
+        canonical = plan(plan_obj["centre"], plan_obj["system"],
+                         plan_obj["first_year"], plan_obj["last_year"],
+                         plan_obj["init_month"], plan_obj["lead_month"])
+    except (KeyError, TypeError) as exc:
+        raise ValueError("Plan CDS incomplet ou malformé") from exc
+    # JSON serialization also distinguishes False from 0 and True from 1.
+    if json.dumps(plan_obj, sort_keys=True) != json.dumps(canonical, sort_keys=True):
+        raise ValueError("Plan CDS modifié : regénérer le plan officiel")
+
+
 def _safe_write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("xb") as stream:
@@ -99,6 +114,7 @@ def _safe_write(path: Path, data: bytes) -> None:
 
 def download(plan_obj: dict, output_dir: Path) -> dict:
     """Opération explicite et non silencieuse. Jamais appelée par l'API/CI."""
+    validate_plan(plan_obj)
     try:
         import cdsapi
     except ImportError as exc:

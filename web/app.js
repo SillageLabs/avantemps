@@ -129,3 +129,128 @@ async function refresh() {
 }
 $("refresh").addEventListener("click", refresh);
 refresh();
+
+
+function safeOfficialLink(address) {
+  try {
+    const url = new URL(address);
+    if (url.protocol !== "https:" || !["meteo.nc", "meteofrance.com", "meteofrance.gf"].includes(url.hostname)) {
+      return null;
+    }
+    return url.href;
+  } catch (_) {
+    return null;
+  }
+}
+
+function addEvidence(target, claim, sources) {
+  const article = document.createElement("article");
+  article.className = "evidence-item";
+  const kind = document.createElement("p");
+  kind.className = "evidence-kind";
+  kind.textContent = ({
+    documented_association: "CLIMATOLOGIE · TENDANCE HISTORIQUE",
+    dated_official_bulletin: "BULLETIN OFFICIEL · DATÉ",
+    dated_observation: "OBSERVATION MESURÉE · DATÉE"
+  })[claim.kind] || "INFORMATION";
+  const heading = document.createElement("h5");
+  heading.textContent = claim.subject;
+  const description = document.createElement("p");
+  description.textContent = claim.detail;
+  article.append(kind, heading, description);
+  if (claim.scope || claim.reference_period) {
+    const scope = document.createElement("p");
+    scope.className = "muted small";
+    scope.textContent = "Périmètre : " + (claim.scope || claim.reference_period);
+    article.append(scope);
+  }
+  const references = document.createElement("div");
+  references.className = "evidence-references";
+  for (const sourceId of claim.source_ids) {
+    const source = sources[sourceId];
+    if (!source) continue;
+    const safe = safeOfficialLink(source.url);
+    if (!safe) continue;
+    const link = document.createElement("a");
+    link.href = safe;
+    link.rel = "noopener noreferrer";
+    link.target = "_blank";
+    link.textContent = source.publisher + " · " + source.published_on + " ↗";
+    references.append(link);
+  }
+  article.append(references);
+  target.append(article);
+}
+
+function renderTerritory(profile) {
+  $("territory-name").textContent = profile.name;
+  $("territory-intro").textContent = profile.intro;
+  $("territory-conclusion").textContent = profile.conclusion;
+  $("territory-disclaimer").textContent = profile.disclaimer;
+  $("territory-review").textContent = "Dossier revu le " +
+    new Date(profile.reviewed_on + "T12:00:00Z").toLocaleDateString("fr-FR", {dateStyle: "long", timeZone: "UTC"}) +
+    " · Documentation figée, non actualisée automatiquement.";
+  const evaluated = profile.status === "documented_climatology";
+  $("territory-status").textContent = evaluated ?
+    "Tendances historiques sourcées — aucune prévision locale générée" :
+    "Non évalué — AVANTEMPS ne formule aucune conclusion";
+  for (const [elementId, facts, absence] of [
+    ["territory-climatology", profile.climatology, "Aucune relation territoriale vérifiée dans AVANTEMPS."],
+    ["territory-publications", profile.dated_publications, "Aucune publication locale intégrée pour ce territoire."]
+  ]) {
+    const target = $(elementId);
+    target.replaceChildren();
+    if (facts.length === 0) {
+      const message = document.createElement("p");
+      message.className = "muted";
+      message.textContent = absence;
+      target.append(message);
+    } else {
+      facts.forEach(claim => addEvidence(target, claim, profile.sources));
+    }
+  }
+  const official = safeOfficialLink(profile.official_information_url);
+  $("territory-official").hidden = !official;
+  if (official) $("territory-official").href = official;
+  $("territory-content").hidden = false;
+}
+
+async function loadTerritory() {
+  const selected = $("territory-choice").value;
+  $("territory-loading").hidden = false;
+  $("territory-loading").textContent = "Ouverture du dossier documentaire…";
+  $("territory-content").hidden = true;
+  try {
+    if (!/^[a-z-]+$/.test(selected)) throw Error("Identifiant incorrect");
+    const profile = await getJSON("/api/territories/" + selected);
+    if ($("territory-choice").value !== selected) return;
+    renderTerritory(profile);
+    $("territory-loading").hidden = true;
+  } catch (error) {
+    $("territory-loading").textContent = "Dossier indisponible : " + error.message;
+  }
+}
+
+async function setupTerritories() {
+  try {
+    const data = await getJSON("/api/territories");
+    const select = $("territory-choice");
+    select.replaceChildren();
+    for (const item of data.territories) {
+      const option = document.createElement("option");
+      option.value = item.id;
+      option.textContent = item.name + (item.status === "not_assessed" ? " · non évalué" : "");
+      select.append(option);
+    }
+    if (data.territories.some(item => item.id === "nouvelle-caledonie")) {
+      select.value = "nouvelle-caledonie";
+    }
+    if (!select.value) throw Error("Aucun territoire renseigné");
+    select.addEventListener("change", loadTerritory);
+    await loadTerritory();
+  } catch (error) {
+    $("territory-loading").textContent = "Impossible de charger les territoires : " + error.message;
+  }
+}
+
+setupTerritories();

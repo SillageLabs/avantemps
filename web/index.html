@@ -27,6 +27,35 @@
       <strong>Ce service n'émet aucune alerte.</strong>
       Le RONI est un indice climatique mondial, pas une prévision de catastrophe locale. Pour une situation dangereuse, consultez les bulletins des autorités compétentes.
     </aside>
+
+    <section class="territory-section" aria-labelledby="territory-title">
+      <div class="territory-heading">
+        <div>
+          <p class="eyebrow">DOSSIER TERRITORIAL · LECTURE SCIENTIFIQUE</p>
+          <h2 id="territory-title">Ce que l'on sait pour votre territoire</h2>
+        </div>
+        <div>
+          <label for="territory-choice" class="territory-label">Territoire étudié</label>
+          <select id="territory-choice" aria-controls="territory-profile"></select>
+        </div>
+      </div>
+      <div class="panel territory-profile" id="territory-profile">
+        <p id="territory-loading" role="status">Chargement des dossiers documentaires…</p>
+        <div id="territory-content" hidden>
+          <p class="territory-status" id="territory-status"></p>
+          <h3 id="territory-name"></h3>
+          <p id="territory-intro"></p>
+          <h4>Relations climatiques documentées</h4>
+          <div id="territory-climatology" class="evidence-grid"></div>
+          <h4>Publications officielles datées</h4>
+          <div id="territory-publications" class="evidence-grid"></div>
+          <p class="territory-conclusion" id="territory-conclusion"></p>
+          <p class="muted small" id="territory-disclaimer"></p>
+          <p class="muted small" id="territory-review"></p>
+          <p><a id="territory-official" target="_blank" rel="noopener noreferrer">Accéder au service météorologique officiel ↗</a></p>
+        </div>
+      </div>
+    </section>
     <section class="grid" aria-label="Suivi du RONI">
       <div class="panel current">
         <div class="panel-head"><h2>Signal océanique RONI</h2><span class="dot" aria-hidden="true"></span></div>

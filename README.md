@@ -13,9 +13,10 @@ AVANTEMPS est un projet libre de SillageLabs : rendre les données climatiques c
 - Archives immuables avec contrôle d'intégrité SHA-256 et date de dernière vérification indépendante de la date de première collecte.
 - Journal des ajouts, retraits et corrections des observations entre deux versions, visible dans l'interface.
 - API HTTP locale en lecture seule et interface mobile simple, sans services tiers ni compte.
+- **Dossiers territoriaux sourcés** : Nouvelle-Calédonie (relations historiques et bulletins datés), Nantes et Guyane (absence d'évaluation explicite). Aucun calcul de risque local.
 - Tests automatiques, fonctionnement sans Docker et sans accès réseau une fois les données récupérées.
 
-La première version ne comporte **ni détection de catastrophe, ni prédiction régionale, ni notification d'urgence**.
+Le prototype ne comporte **ni détection de catastrophe, ni prédiction régionale automatisée, ni notification d'urgence**. Les fiches territoriales sont des documents statiques datés, non un suivi en temps réel.
 
 ## Démarrer (Python 3.11+)
 
@@ -32,6 +33,9 @@ Ouvrir ensuite http://127.0.0.1:18767/ . Le serveur ne télécharge aucune donn�
 ### API
 
 - `GET /api/health` : fonctionnement local et présence d'archives.
+- `GET /api/territories` : liste des territoires et état de l'étude.
+- `GET /api/territories/nouvelle-caledonie` : sources officielles, climatologie et bulletins datés ; fonctionne même sans archive NOAA.
+- `GET /api/territories/nantes` et `/api/territories/guyane` : **abstention explicite**, aucune conclusion régionale.
 - `GET /api/roni/latest` : dernier indice disponible, provenance et précautions.
 - `GET /api/roni/history?limit=24` : observations historiques récentes (maximum 120).
 - `GET /api/roni/versions` : versions archivées du fichier NOAA.
@@ -45,6 +49,7 @@ Le statut « signal chaud/froid/neutre » ne prouve pas à lui seul un épisode 
 - [Vision et non-objectifs](docs/vision.md)
 - [Sources et qualité scientifique](docs/sources.md)
 - [Contrat du journal de révisions](docs/revisions.md)
+- [Première enquête territoriale : Nouvelle-Calédonie](docs/territorial-pilot.md)
 - [Charte de sûreté et de traçabilité](docs/principles.md)
 - [Différenciation et concurrents](docs/competition.md)
 - [Feuille de route](docs/roadmap.md)

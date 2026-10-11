@@ -39,3 +39,12 @@ Selon la documentation C3S, leur qualité dépend du lieu, de la variable, de l'
 Le fichier brut NOAA consultable à l'URL officielle présente bien l'en-tête `SEAS YR ANOM`, une série ordonnée commençant en DJF 1950 et, à la date du contrôle, une dernière ligne `JAS 2026 1.69` (+1,69 °C). Cette observation ne représente **pas** une probabilité de catastrophe. Référence : https://www.cpc.ncep.noaa.gov/data/indices/RONI.ascii.txt
 
 Nous avons vérifié le format et la documentation en ligne ; l'exécution complète du collecteur sur réseau doit être validée indépendamment. Le pipeline GitHub comprend un essai réseau non bloquant pour détecter les problèmes du fournisseur sans fragiliser les tests hors ligne.
+
+## Sources du pilote Nouvelle-Calédonie (recherche du 11 octobre 2026)
+
+- Météo-France NC, « Le climat en Nouvelle-Calédonie », 09/12/2025 : https://meteo.nc/fr/node/569750
+- Météo-France NC, « Le phénomène ENSO », 29/09/2026 : https://meteo.nc/en/node/569807
+- Météo-France NC, bulletin saisonnier pour octobre–décembre 2026, 17/09/2026 : https://meteo.nc/en/node/569805
+- Météo-France NC, bulletin de pluie septembre 2026, 06/10/2026 : https://meteo.nc/fr/publications/bulletin-de-suivi-pluviometrique-septembre-2026
+
+Voir [le protocole de distinction des faits](territorial-pilot.md). Ce jeu de sources est un **premier corpus documentaire**, pas une validation des performances de prévision, ni une autorisation de redistribution de produits météo.

@@ -21,9 +21,13 @@
 
 ## P2 : territoire pilote
 
-- [ ] Revue de littérature et données pour Nouvelle-Calédonie.
+- [x] Première revue de quatre sources primaires Météo-France pour la Nouvelle-Calédonie (version documentaire, non validée par expert externe).
+- [x] Fiche territoriale sourcée et catégorisée (climatologie, bulletin daté, observation historique).
+- [x] Affichage d'abstention explicite pour Nantes et Guyane.
+- [ ] Étendre la revue scientifique à des articles évalués et aux séries locales exploitables.
 - [ ] Mesure de qualité de prévision régionale par variable et échéance.
-- [ ] Mise en place d'un droit explicite à l'abstention.
+- [x] Droit d'abstention dans l'API et l'interface pour les territoires non étudiés.
+- [ ] Tester la même abstention pour les prévisions régionales insuffisamment fiables.
 - [ ] Retour utilisateur local avant extension.
 
 ## P3 : alertes et continuité (seulement après validation)

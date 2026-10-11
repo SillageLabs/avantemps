@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 from .changes import diff_snapshots
+from .territories import get_territory, list_territories
 from .storage import SHA_RE, list_versions, load_latest, load_snapshot
 
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
@@ -77,6 +78,20 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 — protocole HTTP stdlib
         url = urlsplit(self.path)
         try:
+            if url.path == "/api/territories":
+                self.json_response(200, {
+                    "territories": list_territories(),
+                    "note": "Profils documentaires non actualisés en direct",
+                })
+                return
+            if url.path.startswith("/api/territories/"):
+                key = url.path.removeprefix("/api/territories/")
+                result = get_territory(key)
+                if result is None:
+                    self.json_response(404, {"error": "Territoire non étudié ou inconnu"})
+                else:
+                    self.json_response(200, result)
+                return
             if url.path == "/api/health":
                 self.json_response(200, {"status": "ok", "has_data": load_latest(self.data_dir) is not None})
                 return

@@ -95,6 +95,8 @@ async function refresh() {
       getJSON("/api/roni/versions")
     ]);
     const latest = current.summary.latest;
+    $("freshness-status").textContent = current.freshness?.message ||
+      "Fraîcheur indéterminée : consulter les dates et la source officielle.";
     $("index-value").textContent = Number(latest.anomaly_c).toLocaleString("fr-FR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
     $("season-label").textContent = "Saison glissante " + latest.season + " " + latest.year + " — observation";
     $("signal-label").textContent = labels[current.summary.signal] || "Signal non déterminé";
@@ -116,6 +118,7 @@ async function refresh() {
     }
   } catch (error) {
     $("loading").hidden = false;
+    $("freshness-status").textContent = "Fraîcheur indéterminée : archive indisponible.";
     $("loading").textContent = "Données indisponibles : " + error.message + " Aucun chiffre n'est simulé.";
     $("chart").replaceChildren();
     $("chart-fallback").textContent = "Aucune courbe à afficher.";

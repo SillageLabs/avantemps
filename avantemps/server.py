@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from .freshness import assess_freshness
 from .changes import diff_snapshots
 from .territories import get_territory, list_territories
 from .storage import SHA_RE, list_versions, load_latest, load_snapshot
@@ -112,10 +113,12 @@ class Handler(BaseHTTPRequestHandler):
                 if data is None:
                     self.json_response(503, {"error": "Aucune observation importée. Exécuter python3 -m avantemps.ingest."})
                     return
-                self.json_response(200, {k: data[k] for k in (
+                payload = {k: data[k] for k in (
                     "id", "index_name", "source_url", "explanation_url",
                     "retrieved_at_utc", "last_checked_at_utc", "note", "summary"
-                )})
+                )}
+                payload["freshness"] = assess_freshness(data)
+                self.json_response(200, payload)
                 return
             if url.path == "/api/roni/history":
                 raw = parse_qs(url.query).get("limit", ["24"])[0]

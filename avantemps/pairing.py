@@ -158,7 +158,7 @@ def pair_from_monthlies(request_plan: dict, forecasts: str, observations: str) -
         "territory_id": "nouvelle-caledonie",
         "variable": "total_precipitation_mm",
         "forecast_system": request_plan["centre"],
-        "system_version": request_plan["system"],
+        "system_version": "system-" + request_plan["system"],
         "spatial_method": "ONE_GRIDPOINT_EXPERIMENT__EXTRACTION_MUST_BE_AUDITED",
         "forecast_tercile_method": "ensemble member 3-month totals; leave-one-year-out thresholds",
         "observation_source_name": "ERA5 gridpoint monthly reanalysis; not local rain gauges",

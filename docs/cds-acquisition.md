@@ -19,14 +19,19 @@ Mis en place le 11 octobre 2026. **Aucune série Copernicus réelle télécharg�
 - [Table officielle de conversion des précipitations](https://confluence.ecmwf.int/pages/viewpage.action?pageId=673332657)
 - [Documentation d'accès API CDS](https://cds.climate.copernicus.eu/how-to-api)
 
-La combinaison de départ est ECMWF système 5 (SEAS5), période de référence 1993-2016, tirée de l'exemple officiel. Sa disponibilité, les données de pluie, les conditions de licence et les paramètres de région doivent être confirmés auprès du CDS avant une récupération réelle.
+La combinaison actuelle de départ est ECMWF **système 51 (SEAS5.1)**, période
+1993-2016. Le premier prototype utilisait système 5 ; cette référence historique
+était inadéquate pour préparer une comparaison avec les prévisions actuelles.
+Le tutoriel C3S actuel utilise CMCC, et ne justifie pas à lui seul le choix ECMWF.
+La référence dédiée ECMWF ci-dessous justifie maintenant ce choix de version.
+Disponibilité effective, pluie, licences et grille restent à vérifier sur CDS.
 
 Les téléchargements globaux du tutoriel peuvent nécessiter de gros volumes. Le plan AVANTEMPS réduit l'emprise à un petit domaine de recherche, sans prétendre fournir une prévision communale.
 
 ## A — Planifier, sans connexion ni écriture involontaire
 
 ~~~sh
-python3 -m avantemps.cds_requests --centre ecmwf --system 5 --first-year 1993 --last-year 2016 --init-month 11 --lead-month 1 > var-plan.json
+python3 -m avantemps.cds_requests --centre ecmwf --system 51 --first-year 1993 --last-year 2016 --init-month 11 --lead-month 1 > var-plan.json
 ~~~
 
 Pour novembre et les leads 1-3, les mois cibles sont novembre, décembre et janvier de l'année suivante. ERA5 doit couvrir janvier 2017 pour le dernier hindcast de 2016.
@@ -157,3 +162,24 @@ la compétence du modèle ni la représentativité des entrées réelles.
 L'appariement réutilise le même validateur de plan canonique que l'acquisition.
 Référence méthodologique consultée le 11 octobre 2026 :
 https://ecmwf-training.github.io/c3s-training/submodules/c3s-training-submodule-seasonal-forecast/sf-verification/
+
+
+## Version ECMWF corrigée — 11 octobre 2026
+
+Sources officielles consultées :
+- https://confluence.ecmwf.int/spaces/CKB/pages/104239050/Summary+of+available+data
+- https://confluence.ecmwf.int/spaces/CKB/pages/77213502/Description+of+the+C3S+seasonal+multi-system
+
+La version `system=51` est utilisée depuis novembre 2022 : outil d'interpolation
+et grille 1 degré changés, avec centres aux demi-degrés. Les hindcasts doivent
+être de la même version que les prévisions contemporaines. Le CLI choisit
+maintenant 51 par défaut. `--system 5` reste possible pour relire un protocole
+historique, sans autoriser son mélange avec 51. Un ancien plan n'est pas converti
+silencieusement ; régénérer un plan explicite pour une nouvelle acquisition.
+
+La requête ERA5 conserve son domaine expérimental et sa résolution déclarée ;
+cela ne garantit PAS la coïncidence des coordonnées avec SEAS5.1. L'emprise
+rectangulaire ne définit ni une commune ni un agrégat terrestre validé. Avant
+extraction : comparer coordonnées réelles, centres, résolution et ordre des
+points ; établir un protocole de regrillage/agrégation revu indépendamment.
+Aucun changement spatial automatique ou calcul scientifique n'est effectué.

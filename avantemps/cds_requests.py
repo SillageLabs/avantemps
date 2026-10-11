@@ -16,7 +16,8 @@ FORECAST_DATASET = "seasonal-monthly-single-levels"
 OBS_DATASET = "reanalysis-era5-single-levels-monthly-means"
 NC_AREA = (-19, 163, -23, 169)  # Nord, Ouest, Sud, Est ; étude de grille, pas prévision locale
 DOC_URL = "https://ecmwf-training.github.io/c3s-training/submodules/c3s-training-submodule-seasonal-forecast/sf-verification/"
-SUPPORTED = {("ecmwf", "5")}  # Exemple SEAS5 explicitement documenté, autres systèmes après vérification
+SUPPORTED = {("ecmwf", "5"), ("ecmwf", "51")}  # 5: historique ; 51: version CDS actuelle
+SYSTEM_DOC = "https://confluence.ecmwf.int/spaces/CKB/pages/104239050/Summary+of+available+data"
 
 
 def shifted_month(year: int, month: int, months: int) -> tuple[int, int]:
@@ -33,7 +34,7 @@ def months_for_window(year: int, init_month: int, lead_month: int) -> list[tuple
 def plan(centre: str, system: str, first: int, last: int,
          init_month: int, lead_month: int) -> dict:
     if (centre, system) not in SUPPORTED:
-        raise ValueError("Combinaison modèle/version non vérifiée : seul ecmwf system 5 est documenté")
+        raise ValueError("Combinaison modèle/version non vérifiée : seuls ecmwf system 5 (historique) et 51 sont documentés")
     if type(first) is not int or type(last) is not int or not (1993 <= first <= last <= 2016):
         raise ValueError("Période de référence attendue entre 1993 et 2016")
     if type(init_month) is not int or not 1 <= init_month <= 12:
@@ -67,7 +68,7 @@ def plan(centre: str, system: str, first: int, last: int,
         "area": list(NC_AREA),
         "data_format": "grib",
     }
-    return {
+    result = {
         "schema": "avantemps.cds-request-plan.v1",
         "execution": "not_performed",
         "publication_authorized": False,
@@ -89,6 +90,14 @@ def plan(centre: str, system: str, first: int, last: int,
             "L'option area devra être revérifiée dans l'interface CDS avant tout job réel.",
         ],
     }
+
+    if system == "51":
+        result["notes"] += [
+            "SEAS5.1 system=51 : version CDS introduite en novembre 2022 ; hindcasts et temps réel doivent partager cette version.",
+            "Grille 1 degré à centres demi-degré : vérifier les coordonnées réellement renvoyées et leur alignement ERA5 avant extraction.",
+            "Référence de version : " + SYSTEM_DOC,
+        ]
+    return result
 
 
 def validate_plan(plan_obj: dict) -> None:
@@ -160,7 +169,7 @@ def download(plan_obj: dict, output_dir: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Plan CDS + extraction seulement sur --execute")
     parser.add_argument("--centre", default="ecmwf")
-    parser.add_argument("--system", default="5")
+    parser.add_argument("--system", default="51")
     parser.add_argument("--first-year", type=int, default=1993)
     parser.add_argument("--last-year", type=int, default=2016)
     parser.add_argument("--init-month", type=int, default=9)

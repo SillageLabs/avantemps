@@ -66,6 +66,7 @@ Le statut « signal chaud/froid/neutre » ne prouve pas à lui seul un épisode 
 - [Première enquête territoriale : Nouvelle-Calédonie](docs/territorial-pilot.md)
 - [Banc expérimental de vérification saisonnière](docs/hindcast-verification.md)
 - [Pipeline d'acquisition et d'appariement C3S / ERA5](docs/cds-acquisition.md)
+- [Pré-audit GRIB en lecture seule](docs/grib-preflight.md)
 - [Charte de sûreté et de traçabilité](docs/principles.md)
 - [Différenciation et concurrents](docs/competition.md)
 - [Feuille de route](docs/roadmap.md)

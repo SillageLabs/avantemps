@@ -28,6 +28,8 @@
 - [x] Outillage hors ligne de vérification probabiliste expérimentale (RPS/RPSS), avec absence systématique de publication de scores.
 - [x] Générateur de requêtes C3S / ERA5 bornées et téléchargement optionnel documenté (sans clé dans Git).
 - [x] Outil d'appariement de taux de pluie mensuels préparés vers pairs.csv, calibration leave-one-year-out, conversion des unités et gestion des calendriers.
+- [x] Premier pré-audit GRIB en lecture seule avec ecCodes : inventaire des messages, grilles et unités, sans publication.
+- [ ] Exécuter ce pré-audit sur des vrais GRIB CDS et inspecter les clés effectives.
 - [ ] Extraction reproductible GRIB -> tableaux mensuels, audit de la grille et des membres d'ensemble.
 - [ ] Acquisition de vrais hindcasts C3S + observations adaptées ; **aucune mesure réelle de performance territoriale effectuée**.
 - [ ] Audit de la méthodologie hors échantillon et des performances par variable et échéance.

@@ -100,3 +100,7 @@ Ce module calcule un score RPSS rétrospectif exploratoire ; il ne publie aucune
 - Un score RPSS positif ne suffit pas à valider un service prédictif.
 - Les données réelles et l'extracteur GRIB sont encore à acquérir/développer.
 - Aucun calcul de risque local, aucune alerte et aucun accès automatique aux systèmes de production.
+
+## Pré-audit des GRIB (sans extraction automatique)
+
+Avant d'utiliser les fichiers, effectuer un inventaire en lecture seule via ecCodes : `python3 -m avantemps.grib_audit var/cds-nc/forecast.grib --role forecast` puis `python3 -m avantemps.grib_audit var/cds-nc/observations.grib --role observations`. Voir [les limites de ce pré-audit](grib-preflight.md). Le rapport n'autorise aucune extraction ni publication et ne remplace pas le contrôle des unités et de la grille sur fichiers réels.

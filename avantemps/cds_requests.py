@@ -14,7 +14,7 @@ from pathlib import Path
 
 FORECAST_DATASET = "seasonal-monthly-single-levels"
 OBS_DATASET = "reanalysis-era5-single-levels-monthly-means"
-NC_AREA = [-19, 163, -23, 169]  # Nord, Ouest, Sud, Est ; étude de grille, pas prévision locale
+NC_AREA = (-19, 163, -23, 169)  # Nord, Ouest, Sud, Est ; étude de grille, pas prévision locale
 DOC_URL = "https://ecmwf-training.github.io/c3s-training/submodules/c3s-training-submodule-seasonal-forecast/sf-verification/"
 SUPPORTED = {("ecmwf", "5")}  # Exemple SEAS5 explicitement documenté, autres systèmes après vérification
 
@@ -55,7 +55,7 @@ def plan(centre: str, system: str, first: int, last: int,
         "year": [str(y) for y in range(first, last+1)],
         "month": f"{init_month:02d}",
         "leadtime_month": [str(m) for m in range(lead_month, lead_month + 3)],
-        "area": NC_AREA,
+        "area": list(NC_AREA),
     }
     observation_request = {
         "product_type": "monthly_averaged_reanalysis",
@@ -64,7 +64,7 @@ def plan(centre: str, system: str, first: int, last: int,
         "month": observation_months,
         "time": "00:00",
         "grid": "1/1",
-        "area": NC_AREA,
+        "area": list(NC_AREA),
         "data_format": "grib",
     }
     return {
@@ -72,7 +72,7 @@ def plan(centre: str, system: str, first: int, last: int,
         "execution": "not_performed",
         "publication_authorized": False,
         "territory_id": "nouvelle-caledonie",
-        "area_nwse": NC_AREA,
+        "area_nwse": list(NC_AREA),
         "centre": centre, "system": system,
         "first_year": first, "last_year": last,
         "init_month": init_month, "lead_month": lead_month,

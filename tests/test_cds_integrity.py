@@ -98,6 +98,15 @@ class IntegrityTests(unittest.TestCase):
         self.assertEqual(result.exception.code, 2)
         self.assertIn('Intégrité refusée', log.getvalue())
 
+    def test_mutating_generated_area_cannot_change_canonical_domain(self):
+        request = plan('ecmwf', '5', 1993, 2016, 11, 1)
+        request['forecast']['request']['area'][0] = 90
+        self.assertEqual(request['observations']['request']['area'][0], -19)
+        self.assertEqual(request['area_nwse'][0], -19)
+        self.assertEqual(plan('ecmwf', '5', 1993, 2016, 11, 1)['area_nwse'][0], -19)
+        with self.assertRaisesRegex(ValueError, 'modifié'):
+            validate_plan(request)
+
     def test_altered_plan_refused_before_client_or_directory_creation(self):
         request = copy.deepcopy(self.manifest['plan'])
         request['forecast']['request']['area'] = [90, -180, -90, 180]

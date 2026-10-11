@@ -1,4 +1,4 @@
-"""Conserve chaque version NOAA, avec son texte brut, sans écraser l'historique."""
+"""Archivage de fichiers NOAA bruts immuables + état de dernière vérification."""
 from __future__ import annotations
 
 import hashlib
@@ -9,7 +9,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .roni import EXPLANATION_URL, SOURCE_URL, latest_summary, parse_roni
+from .roni import EXPLANATION_URL, SOURCE_URL, latest_summary, parse_roni, validate_noaa_history
 
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -29,42 +29,70 @@ def _atomic_bytes(path: Path, content: bytes) -> None:
 
 
 def _json_bytes(obj: dict) -> bytes:
-    return (json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    return (json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+
+
+def _load_snapshot(root: Path, digest: str) -> dict:
+    if not SHA_RE.fullmatch(digest):
+        raise ValueError("Identifiant SHA-256 incorrect")
+    directory = root / "snapshots"
+    with (directory / f"{digest}.txt").open("rb") as stream:
+        raw = stream.read()
+    if hashlib.sha256(raw).hexdigest() != digest:
+        raise ValueError("Archive brute altérée (SHA-256)")
+    with (directory / f"{digest}.json").open(encoding="utf-8") as stream:
+        snapshot = json.load(stream)
+    if snapshot["id"] != digest:
+        raise ValueError("Archive JSON / source incohérentes")
+    parsed = parse_roni(raw.decode("ascii"))
+    if snapshot["records"] != [record.json() for record in parsed]:
+        raise ValueError("Archive JSON / observations incohérentes")
+    return snapshot
 
 
 def store_snapshot(root: Path, text: str, retrieved_at: datetime | None = None) -> dict:
-    # Toujours valider AVANT de toucher à l'état précédent.
-    records = parse_roni(text)
-    if len(records) < 100:
-        raise ValueError("Source NOAA anormalement courte (< 100 saisons)")
+    """Valide totalement avant de toucher au pointeur courant.
 
-    now = retrieved_at or datetime.now(timezone.utc)
+    Le texte déjà archivé n'est jamais réécrit lors d'une collecte identique.
+    """
+    records = parse_roni(text)
+    validate_noaa_history(records)
+    now = retrieved_at if retrieved_at is not None else datetime.now(timezone.utc)
     if now.utcoffset() is None:
-        raise ValueError("La date de collecte doit contenir un fuseau")
-    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        raise ValueError("Date de collecte sans fuseau horaire")
+    checked = now.astimezone(timezone.utc).isoformat()
+    raw = text.encode("ascii")
+    digest = hashlib.sha256(raw).hexdigest()
     directory = root / "snapshots"
-    json_path = directory / f"{digest}.json"
     raw_path = directory / f"{digest}.txt"
-    snapshot = {
-        "id": digest,
-        "source_url": SOURCE_URL,
-        "explanation_url": EXPLANATION_URL,
-        "index_name": "RONI",
-        "unit": "degree_Celsius_anomaly",
-        "retrieved_at_utc": now.astimezone(timezone.utc).isoformat(),
-        "note": "Date de COLLECTE, pas date de publication NOAA.",
-        "summary": latest_summary(records),
-        "records": [record.json() for record in records],
-    }
-    if not json_path.exists():
-        _atomic_bytes(raw_path, text.encode("utf-8"))
-        _atomic_bytes(json_path, _json_bytes(snapshot))
+    json_path = directory / f"{digest}.json"
+
+    if json_path.exists():
+        snapshot = _load_snapshot(root, digest)
     else:
-        # Une version déjà archivée conserve la date de sa PREMIÈRE collecte.
-        with json_path.open(encoding="utf-8") as stream:
-            snapshot = json.load(stream)
-    _atomic_bytes(root / "latest.json", _json_bytes({"snapshot_id": digest}))
+        snapshot = {
+            "id": digest,
+            "source_url": SOURCE_URL,
+            "explanation_url": EXPLANATION_URL,
+            "index_name": "RONI",
+            "unit": "degree_Celsius_anomaly",
+            "retrieved_at_utc": checked,
+            "note": "Date de première collecte, pas date de publication de la NOAA.",
+            "summary": latest_summary(records),
+            "records": [record.json() for record in records],
+        }
+        _atomic_bytes(raw_path, raw)
+        _atomic_bytes(json_path, _json_bytes(snapshot))
+    # last_checked décrit la dernière vérification RÉUSSIE, même sans changement de fichier.
+    _atomic_bytes(root / "latest.json", _json_bytes({
+        "snapshot_id": digest,
+        "last_checked_at_utc": checked,
+    }))
     return snapshot
+
+
+def load_snapshot(root: Path, digest: str) -> dict:
+    return _load_snapshot(root, digest)
 
 
 def load_latest(root: Path) -> dict | None:
@@ -72,11 +100,10 @@ def load_latest(root: Path) -> dict | None:
     if not pointer.is_file():
         return None
     with pointer.open(encoding="utf-8") as stream:
-        digest = json.load(stream)["snapshot_id"]
-    if not isinstance(digest, str) or not SHA_RE.fullmatch(digest):
-        raise ValueError("Index d'archive invalide")
-    with (root / "snapshots" / f"{digest}.json").open(encoding="utf-8") as stream:
-        return json.load(stream)
+        state = json.load(stream)
+    snapshot = _load_snapshot(root, state["snapshot_id"])
+    snapshot["last_checked_at_utc"] = state.get("last_checked_at_utc", snapshot["retrieved_at_utc"])
+    return snapshot
 
 
 def list_versions(root: Path) -> list[dict]:
@@ -87,8 +114,7 @@ def list_versions(root: Path) -> list[dict]:
     for path in directory.glob("*.json"):
         if not SHA_RE.fullmatch(path.stem):
             continue
-        with path.open(encoding="utf-8") as stream:
-            snapshot = json.load(stream)
+        snapshot = _load_snapshot(root, path.stem)
         versions.append({
             "id": snapshot["id"],
             "retrieved_at_utc": snapshot["retrieved_at_utc"],

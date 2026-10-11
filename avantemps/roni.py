@@ -1,6 +1,6 @@
-"""Analyse stricte du fichier officiel NOAA/CPC RONI.ascii.txt.
+"""Lecture stricte du fichier RONI officiel NOAA/CPC.
 
-Le RONI est une observation climatique, pas une alerte ni une prédiction locale.
+RONI est une observation climatique ; ce n'est pas une alerte locale.
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class Record:
 
 
 def signal(value: float) -> str:
-    """Indication de l'indice seulement, PAS une phase ENSO confirmée."""
+    """Simple zone numérique, jamais un diagnostic ENSO officiel."""
     if value > 0.5:
         return "warm_index"
     if value < -0.5:
@@ -33,33 +33,47 @@ def signal(value: float) -> str:
 
 
 def parse_roni(text: str) -> list[Record]:
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
     if not lines or lines[0].split() != ["SEAS", "YR", "ANOM"]:
-        raise ValueError("En-tête NOAA RONI inattendu (SEAS YR ANOM requis)")
+        raise ValueError("En-tête RONI invalide (SEAS YR ANOM attendu)")
     records: list[Record] = []
-    previous: tuple[int, int] | None = None
+    previous: int | None = None
     for number, line in enumerate(lines[1:], 2):
-        columns = line.split()
-        if len(columns) != 3:
-            raise ValueError(f"Ligne {number} : trois colonnes attendues")
-        season, year_text, anomaly_text = columns
+        fields = line.split()
+        if len(fields) != 3:
+            raise ValueError(f"Ligne {number}: trois colonnes attendues")
+        season, year_s, anomaly_s = fields
         if season not in ORDER:
-            raise ValueError(f"Ligne {number} : saison inconnue {season!r}")
+            raise ValueError(f"Ligne {number}: saison inconnue {season!r}")
         try:
-            year = int(year_text)
-            anomaly = float(anomaly_text)
+            year = int(year_s)
+            anomaly = float(anomaly_s)
         except ValueError as exc:
-            raise ValueError(f"Ligne {number} : valeur invalide") from exc
+            raise ValueError(f"Ligne {number}: valeur invalide") from exc
         if not (1900 <= year <= 2200 and math.isfinite(anomaly) and -10 <= anomaly <= 10):
-            raise ValueError(f"Ligne {number} : valeur hors limites")
-        key = (year, ORDER[season])
-        if previous is not None and key <= previous:
-            raise ValueError(f"Ligne {number} : doublon ou ordre chronologique invalide")
-        previous = key
+            raise ValueError(f"Ligne {number}: valeur hors limites")
+        number_in_series = year * 12 + ORDER[season]
+        if previous is not None and number_in_series != previous + 1:
+            raise ValueError(f"Ligne {number}: doublon, saison manquante ou ordre invalide")
+        previous = number_in_series
         records.append(Record(season, year, anomaly))
     if not records:
-        raise ValueError("Le fichier NOAA ne contient aucune observation")
+        raise ValueError("Aucune observation RONI")
     return records
+
+
+def validate_noaa_history(records: list[Record]) -> None:
+    """Le produit NOAA utilisé en 2026 commence en DJF 1950.
+
+    Un extrait cohérent, mais tronqué, ne doit pas être publié comme archive complète.
+    """
+    if (
+        len(records) < 840
+        or records[0].year != 1950
+        or records[0].season != "DJF"
+        or records[-1].year < 2020
+    ):
+        raise ValueError("Historique NOAA incomplet ou anormalement tronqué")
 
 
 def latest_summary(records: list[Record]) -> dict:
@@ -74,8 +88,7 @@ def latest_summary(records: list[Record]) -> dict:
         "delta_from_previous_c": round(last.anomaly_c - previous.anomaly_c, 2) if previous else None,
         "observation_count": len(records),
         "interpretation": (
-            "Le signal RONI n'est pas une confirmation d'épisode ENSO et ne "
-            "permet pas de prédire une catastrophe locale. Les observations "
-            "récentes peuvent être révisées par la NOAA."
+            "Le RONI seul ne confirme pas un épisode ENSO et ne prédit pas "
+            "de catastrophe locale. Les dernières observations peuvent être révisées."
         ),
     }

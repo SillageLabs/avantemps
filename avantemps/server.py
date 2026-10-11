@@ -1,4 +1,4 @@
-"""API de lecture et interface statique LOCALES ; pas de déploiement Internet."""
+"""API de consultation locale, sans alertes ni exposition publique."""
 from __future__ import annotations
 
 import argparse
@@ -7,12 +7,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from .storage import list_versions, load_latest
+from .changes import diff_snapshots
+from .storage import SHA_RE, list_versions, load_latest, load_snapshot
 
 WEB_ROOT = Path(__file__).resolve().parent.parent / "web"
-ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
-          "/app.js": ("app.js", "text/javascript; charset=utf-8"),
-          "/styles.css": ("styles.css", "text/css; charset=utf-8")}
+ASSETS = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/styles.css": ("styles.css", "text/css; charset=utf-8"),
+}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -35,7 +38,43 @@ class Handler(BaseHTTPRequestHandler):
         self.send_payload(status, json.dumps(body, ensure_ascii=False).encode("utf-8"),
                           "application/json; charset=utf-8")
 
-    def do_GET(self) -> None:  # noqa: N802 — interface stdlib
+    def revision_response(self, query: str) -> None:
+        params = parse_qs(query)
+        before_values = params.get("before", [])
+        after_values = params.get("after", [])
+        if len(before_values) > 1 or len(after_values) > 1:
+            self.json_response(400, {"error": "Paramètre répété"})
+            return
+        if bool(before_values) != bool(after_values):
+            self.json_response(400, {"error": "Fournir before ET after, ou aucun"})
+            return
+
+        if before_values:
+            before_id, after_id = before_values[0], after_values[0]
+            if not SHA_RE.fullmatch(before_id) or not SHA_RE.fullmatch(after_id):
+                self.json_response(400, {"error": "Identifiant SHA-256 invalide"})
+                return
+        else:
+            latest = load_latest(self.data_dir)
+            if latest is None:
+                self.json_response(503, {"error": "Aucune archive NOAA chargée"})
+                return
+            after_id = latest["id"]
+            prior = [v for v in list_versions(self.data_dir) if v["id"] != after_id]
+            if not prior:
+                self.json_response(200, {"status": "insufficient_versions", "comparison": None})
+                return
+            before_id = prior[0]["id"]
+
+        try:
+            before = load_snapshot(self.data_dir, before_id)
+            after = load_snapshot(self.data_dir, after_id)
+        except FileNotFoundError:
+            self.json_response(404, {"error": "Version inconnue"})
+            return
+        self.json_response(200, {"status": "ok", "comparison": diff_snapshots(before, after)})
+
+    def do_GET(self) -> None:  # noqa: N802 — protocole HTTP stdlib
         url = urlsplit(self.path)
         try:
             if url.path == "/api/health":
@@ -46,8 +85,10 @@ class Handler(BaseHTTPRequestHandler):
                 if data is None:
                     self.json_response(503, {"error": "Aucune observation importée. Exécuter python3 -m avantemps.ingest."})
                     return
-                self.json_response(200, {k: data[k] for k in ("id", "index_name", "source_url", "explanation_url",
-                                                            "retrieved_at_utc", "note", "summary")})
+                self.json_response(200, {k: data[k] for k in (
+                    "id", "index_name", "source_url", "explanation_url",
+                    "retrieved_at_utc", "last_checked_at_utc", "note", "summary"
+                )})
                 return
             if url.path == "/api/roni/history":
                 raw = parse_qs(url.query).get("limit", ["24"])[0]
@@ -69,13 +110,16 @@ class Handler(BaseHTTPRequestHandler):
             if url.path == "/api/roni/versions":
                 self.json_response(200, {"versions": list_versions(self.data_dir)})
                 return
+            if url.path == "/api/roni/changes":
+                self.revision_response(url.query)
+                return
             if url.path in ASSETS:
                 filename, mime = ASSETS[url.path]
                 self.send_payload(200, (WEB_ROOT / filename).read_bytes(), mime)
                 return
             self.json_response(404, {"error": "Chemin inconnu"})
-        except (OSError, ValueError, KeyError, json.JSONDecodeError):
-            self.json_response(500, {"error": "Archive illisible ; vérifier les journaux locaux"})
+        except (OSError, ValueError, KeyError, UnicodeDecodeError, json.JSONDecodeError):
+            self.json_response(500, {"error": "Archive invalide ou illisible ; vérifier les journaux locaux"})
 
     def log_message(self, format: str, *args: object) -> None:
         super().log_message(format, *args)
@@ -88,7 +132,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=18767)
     args = parser.parse_args()
     if args.host not in ("127.0.0.1", "localhost", "::1"):
-        parser.error("Ce prototype ne peut écouter que sur l'interface locale.")
+        parser.error("Ce prototype ne peut écouter que sur l'interface locale")
     handler = type("AvantempsHandler", (Handler,), {"data_dir": args.data_dir})
     with ThreadingHTTPServer((args.host, args.port), handler) as server:
         print(f"AVANTEMPS : http://{args.host}:{args.port}/", flush=True)

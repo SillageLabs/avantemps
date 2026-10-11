@@ -62,3 +62,18 @@ jobs:
           if [ "$NOAARESULT" != "success" ]; then
             echo "::warning::Collecte NOAA non validée durant cet essai : voir les logs; le pipeline reste non bloquant."
           fi
+
+  grib-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Installer le décodeur facultatif pour ce test isolé
+        run: python -m pip install eccodes==2.49.0
+      - name: Contrôler un GRIB synthétique, sans réseau climatique
+        run: python -m unittest discover -s tests -p 'test_grib_values.py' -v

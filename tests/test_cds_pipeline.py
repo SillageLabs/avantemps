@@ -1,10 +1,15 @@
 """Fixtures 100 % SYNTHÉTIQUES : aucune performance climatique réelle."""
 import csv
 import io
+import hashlib
 import json
+import tempfile
+import types
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-from avantemps.cds_requests import plan, months_for_window, shifted_month
+from avantemps.cds_requests import plan, months_for_window, shifted_month, download
 from avantemps.pairing import (
     month_days, m_s_to_mm_month, m_day_to_mm_month, pair_from_monthlies,
 )
@@ -106,6 +111,33 @@ class PairingTests(unittest.TestCase):
             if row.split(",")[1] == "0"]) + "\n"
         with self.assertRaisesRegex(ValueError, "membres"):
             pair_from_monthlies(self.request, only_member_0, self.observation)
+
+
+class DownloadSafetyTests(unittest.TestCase):
+    def test_opt_in_download_writes_sha256_manifest_without_loading_all_at_once(self):
+        requested = []
+        class FakeClient:
+            def retrieve(self, dataset, args, target):
+                requested.append(dataset)
+                Path(target).write_bytes(b"GRIB-synthetic-only-" * 10)
+
+        module = types.SimpleNamespace(Client=lambda: FakeClient())
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "download"
+            with patch.dict("sys.modules", {"cdsapi": module}):
+                result = download(plan("ecmwf", "5", 1993, 2016, 11, 1), destination)
+            self.assertEqual(requested, [
+                "seasonal-monthly-single-levels",
+                "reanalysis-era5-single-levels-monthly-means"
+            ])
+            self.assertFalse(result["publication_authorized"])
+            for entry in result["artifacts"]:
+                raw = (destination / entry["filename"]).read_bytes()
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), entry["sha256"])
+                self.assertEqual(entry["bytes"], len(raw))
+            with patch.dict("sys.modules", {"cdsapi": module}):
+                with self.assertRaisesRegex(ValueError, "vide"):
+                    download(plan("ecmwf", "5", 1993, 2016, 11, 1), destination)
 
 
 if __name__ == "__main__":

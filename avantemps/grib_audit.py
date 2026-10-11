@@ -16,7 +16,7 @@ REQUIRED = ("shortName", "units", "dataDate", "dataTime", "gridType",
             "Ni", "Nj", "numberOfPoints", "latitudeOfFirstGridPointInDegrees",
             "longitudeOfFirstGridPointInDegrees", "latitudeOfLastGridPointInDegrees",
             "longitudeOfLastGridPointInDegrees")
-OPTIONAL = ("number", "forecastMonth", "step", "stepType", "typeOfStatisticalProcessing",
+OPTIONAL = ("system", "number", "forecastMonth", "step", "stepType", "typeOfStatisticalProcessing",
             "generatingProcessIdentifier", "centre", "tablesVersion",
             "year", "month", "validityDate", "validityTime",
             "indexingDate", "indexingTime", "localDefinitionNumber",
@@ -125,10 +125,15 @@ def audit_values(values, bitmap=None) -> dict:
             "quality_flags_clear": bool(valid) and not (missing or nonfinite or negative)}
 
 
-def audit_grib(path: Path, role: str, *, inspect_values: bool = False) -> dict:
+def audit_grib(path: Path, role: str, *, inspect_values: bool = False, request_plan: dict | None = None) -> dict:
     """Lecture ecCodes ; décodage des valeurs uniquement sur demande explicite."""
     if role not in ROLES:
         raise ValueError("Rôle GRIB incorrect")
+    if request_plan is not None:
+        if role != "forecast":
+            raise ValueError("Contrôle de plan uniquement pour les hindcasts ECMWF")
+        from .cds_requests import validate_plan
+        validate_plan(request_plan)
     try:
         import eccodes
     except ImportError as exc:
@@ -166,6 +171,12 @@ def audit_grib(path: Path, role: str, *, inspect_values: bool = False) -> dict:
             finally:
                 eccodes.codes_release(handle)
     report = audit_metadata(records, role)
+    if request_plan is not None:
+        if role != "forecast":
+            raise ValueError("Contrôle de plan uniquement pour les hindcasts ECMWF")
+        from .grib_coverage import forecast_coverage
+        report["forecast_coverage"] = forecast_coverage(records, request_plan)
+        report["issues"] += report["forecast_coverage"]["issues"]
     report["values_inspected"] = inspect_values
     if inspect_values:
         report["value_quality"] = {
@@ -187,9 +198,20 @@ def main() -> int:
     parser.add_argument("--role", choices=sorted(ROLES), required=True)
     parser.add_argument("--inspect-values", action="store_true",
                         help="Décode les valeurs brutes et le bitmap, sans extraction")
+    parser.add_argument("--plan", type=Path, help="Plan CDS canonique pour contrôler la couverture forecast")
     args = parser.parse_args()
     try:
-        print(json.dumps(audit_grib(args.path, args.role, inspect_values=args.inspect_values), ensure_ascii=False, indent=2))
+        request_plan = None
+        if args.plan is not None:
+            with args.plan.open("rb") as stream:
+                raw = stream.read(100_001)
+            if len(raw) > 100_000:
+                raise ValueError("Plan trop volumineux")
+            request_plan = json.loads(raw)
+            from .cds_requests import validate_plan
+            validate_plan(request_plan)
+        print(json.dumps(audit_grib(args.path, args.role, inspect_values=args.inspect_values,
+                                   request_plan=request_plan), ensure_ascii=False, indent=2))
     except (OSError, ValueError, RuntimeError) as exc:
         parser.exit(2, f"Audit refusé : {exc}\n")
     return 0

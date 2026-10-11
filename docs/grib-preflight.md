@@ -66,3 +66,39 @@ complétude et grille. L'agrégat spatial doit être revu indépendamment avant 
 comparaison ; ERA5 est une réanalyse, pas une station pluviométrique locale.
 L'étendue marine et la topographie rendent une moyenne du rectangle NC impropre
 à représenter automatiquement la pluie sur les terres. Publication verrouillée.
+
+## Contrôler la couverture des hindcasts contre un plan CDS
+
+~~~sh
+python3 -m avantemps.grib_audit var/cds-nc/forecast.grib --role forecast --plan var-plan.json --inspect-values
+~~~
+
+Le contrôle optionnel `--plan` est limité aux hindcasts ECMWF burst des systèmes
+5/51 déjà documentés. Il lit les clés explicites `system`, `centre`, `dataDate`,
+`dataTime`, `number` et `forecastMonth` : aucun lead n'est déduit d'une date de
+validité, aucune date d'initialisation décalée n'est remappée silencieusement.
+Les couples de dates réelle/nominale différents requièrent une inspection.
+
+La documentation officielle donne 25 membres de hindcast ECMWF. Les identifiants
+sont inventoriés dans le fichier, sans présumer `0..24` ou `1..25`. Le contrôle
+vérifie le nombre documenté, le produit cartésien initialisation/membre/échéance,
+les messages dupliqués et les clés hors plan. Un membre absent sur toute la
+période n'est pas inventé dans la liste des identifiants manquants : le nombre de
+membres incorrect est signalé séparément. Exemples de diagnostics limités à dix.
+
+`header_coverage_matches_plan` ne signifie que couverture des en-têtes conforme.
+Cela ne prouve ni authenticité, unités, périodes de moyenne, emprise, valeurs,
+représentativité, ni compétence. L'extraction et la publication restent interdites.
+`review_required` indique un écart ; le CLI fournit un inventaire JSON et n'est
+pas un garde automatique d'extraction. Lire le statut et ses problèmes explicites.
+Le contrôle ne valide pas ERA5 et refuse `--plan` avec le rôle observations.
+
+Sources consultées le 11 octobre 2026 :
+- https://confluence.ecmwf.int/spaces/CKB/pages/77213502/Description+of+the+C3S+seasonal+multi-system
+- https://confluence.ecmwf.int/spaces/CKB/pages/165320495/Guidelines+to+decode+monthly+C3S+seasonal+forecast+data
+
+Tests : métadonnées SYNTHÉTIQUES complètes/incomplètes, membre totalement absent,
+doublon masquant une absence, version/centre/dates/leads incorrects, alias de
+membre, fenêtre glissante et GRIB synthétique non saisonnier refusé comme couvert.
+Aucun fichier CDS réel validé ; les clés et le protocole restent à éprouver lors
+de la première acquisition légitime. L'extracteur GRIB->CSV n'est pas livré.

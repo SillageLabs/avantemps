@@ -105,6 +105,51 @@ class PairingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "modifié"):
             pair_from_monthlies(altered, self.forecast, self.observation)
 
+    def test_member_alias_cannot_duplicate_an_ensemble_member(self):
+        lines = self.forecast.splitlines()
+        aliases = []
+        for line in lines[1:]:
+            cols = line.split(',')
+            if cols[1] == '0':
+                cols[1] = '00'
+                aliases.append(','.join(cols))
+        duplicated = self.forecast + '\n'.join(aliases) + '\n'
+        with self.assertRaisesRegex(ValueError, 'dupliqué'):
+            pair_from_monthlies(self.request, duplicated, self.observation)
+
+    def test_zero_padded_member_ids_preserve_probabilities(self):
+        lines = self.forecast.splitlines()
+        padded = [lines[0]]
+        for line in lines[1:]:
+            cols = line.split(',')
+            cols[1] = cols[1].zfill(2)
+            padded.append(','.join(cols))
+        expected, _ = pair_from_monthlies(self.request, self.forecast, self.observation)
+        actual, _ = pair_from_monthlies(self.request, '\n'.join(padded) + '\n', self.observation)
+        self.assertEqual(actual, expected)
+
+    def test_test_year_excluded_from_model_tercile_calibration(self):
+        from avantemps.pairing import quantile
+        training_inputs = []
+        def inspect_quantile(values, probability):
+            training_inputs.append(list(values))
+            return quantile(values, probability)
+        with patch('avantemps.pairing.quantile', side_effect=inspect_quantile):
+            pair_from_monthlies(self.request, self.forecast, self.observation)
+        # Perturb only the last test year: its two calibration samples must be identical.
+        changed = []
+        for line in self.forecast.splitlines():
+            cols = line.split(',')
+            if cols[0] == '2016':
+                cols[3] = '0.001'  # SYNTHETIC stress case, not climate data
+            changed.append(','.join(cols))
+        previous = training_inputs[:]
+        training_inputs.clear()
+        with patch('avantemps.pairing.quantile', side_effect=inspect_quantile):
+            pair_from_monthlies(self.request, '\n'.join(changed) + '\n', self.observation)
+        self.assertEqual(previous[-2:], training_inputs[-2:])
+        self.assertNotEqual(previous[:2], training_inputs[:2])
+
     def test_rejects_too_few_members(self):
         only_member_0 = "\n".join([self.forecast.splitlines()[0]] + [
             row for row in self.forecast.splitlines()[1:]

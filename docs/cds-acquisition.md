@@ -139,3 +139,21 @@ la documentation officielle consultée : https://cds.climate.copernicus.eu/how-t
 Étape suivante inchangée : inspecter les vrais messages puis élaborer et revoir
 le protocole d'extraction spatial/temporel. L'intégrité locale ne lève aucun
 blocage scientifique, et ne déclenche aucun téléchargement ou déploiement.
+
+## Identité des membres et absence de fuite temporelle
+
+Les identifiants CSV numériques sont normalisés (`00` et `0` désignent le même
+membre) avant de vérifier les doublons et la complétude. Un export qui répète un
+membre sous plusieurs écritures est refusé afin de ne pas surpondérer ce membre
+dans les probabilités. Un export entièrement avec zéros initiaux conserve les
+mêmes résultats. Les identifiants numériques non ASCII sont refusés.
+
+Un test de perturbation **SYNTHÉTIQUE** modifie uniquement les prévisions de la
+dernière année évaluée : les échantillons de calibration de cette année doivent
+rester identiques, tandis que ceux d'une autre année changent. Cela contrôle
+l'exclusion de l'année testée dans les terciles modèles ; ce test ne prouve ni
+la compétence du modèle ni la représentativité des entrées réelles.
+
+L'appariement réutilise le même validateur de plan canonique que l'acquisition.
+Référence méthodologique consultée le 11 octobre 2026 :
+https://ecmwf-training.github.io/c3s-training/submodules/c3s-training-submodule-seasonal-forecast/sf-verification/

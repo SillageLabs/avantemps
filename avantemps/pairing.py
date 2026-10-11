@@ -14,7 +14,7 @@ import json
 import math
 from pathlib import Path
 
-from .cds_requests import plan as create_plan, months_for_window
+from .cds_requests import validate_plan, months_for_window
 from .verification import quantile, parse_pairs, validate_manifest
 
 F_COLS = ["year", "member", "lead_month", "tp_m_per_s"]
@@ -75,15 +75,7 @@ def _year(value: str, lo: int, hi: int) -> int:
 
 
 def pair_from_monthlies(request_plan: dict, forecasts: str, observations: str) -> tuple[str, dict]:
-    if request_plan.get("schema") != "avantemps.cds-request-plan.v1":
-        raise ValueError("Plan CDS invalide")
-    canonical = create_plan(
-        request_plan["centre"], request_plan["system"],
-        request_plan["first_year"], request_plan["last_year"],
-        request_plan["init_month"], request_plan["lead_month"],
-    )
-    if request_plan != canonical:
-        raise ValueError("Plan modifié : regénérer le plan officiel")
+    validate_plan(request_plan)
     init_month = request_plan["init_month"]
     lead = request_plan["lead_month"]
     years = list(range(request_plan["first_year"], request_plan["last_year"] + 1))
@@ -94,8 +86,10 @@ def pair_from_monthlies(request_plan: dict, forecasts: str, observations: str) -
     for row in f_rows:
         year = _year(row["year"], years[0], years[-1])
         member = row["member"].strip()
-        if not member.isdigit() or not 0 <= int(member) < 200:
+        if not member.isascii() or not member.isdigit() or not 0 <= int(member) < 200:
             raise ValueError("Identifiant membre de prévision invalide")
+        # CSV aliases 0 / 00 must not create two ensemble members.
+        member = str(int(member))
         try:
             lead_month = int(row["lead_month"])
         except ValueError as exc:

@@ -57,6 +57,24 @@ def validate_manifest(meta: dict) -> dict:
     return meta
 
 
+def _validate_row(row: dict, meta: dict) -> None:
+    if not isinstance(row, dict):
+        raise ValueError("Paire hindcast malformée")
+    year = row.get("year")
+    if type(year) is not int or not meta["start_year"] <= year <= meta["end_year"]:
+        raise ValueError("Année hors période ou non entière")
+    probs = row.get("p")
+    if not isinstance(probs, (list, tuple)) or len(probs) != 3:
+        raise ValueError("Trois probabilités requises")
+    if not all(type(p) in (int, float) and math.isfinite(p) and 0 <= p <= 1 for p in probs):
+        raise ValueError("Probabilités invalides")
+    if abs(sum(probs) - 1) > 1e-6:
+        raise ValueError("Les probabilités doivent sommer à 1")
+    observed = row.get("observed_mm")
+    if type(observed) not in (int, float) or not math.isfinite(observed) or observed < 0:
+        raise ValueError("Observation en mm non valide")
+
+
 def parse_pairs(text: str, meta: dict) -> list[dict]:
     validate_manifest(meta)
     if len(text.encode("utf-8")) > MAX_CSV_BYTES:
@@ -74,16 +92,12 @@ def parse_pairs(text: str, meta: dict) -> list[dict]:
             observed = float(record["observed_mm"])
         except (ValueError, TypeError) as exc:
             raise ValueError(f"Nombre incorrect ligne {row_no}") from exc
-        if year in years or not (meta["start_year"] <= year <= meta["end_year"]):
-            raise ValueError("Année dupliquée ou hors période")
+        row = {"year": year, "p": probs, "observed_mm": observed}
+        _validate_row(row, meta)
+        if year in years:
+            raise ValueError("Année dupliquée")
         years.add(year)
-        if not all(math.isfinite(p) and 0 <= p <= 1 for p in probs):
-            raise ValueError("Probabilités invalides")
-        if abs(sum(probs) - 1) > 1e-6:
-            raise ValueError("Les probabilités doivent sommer à 1")
-        if not math.isfinite(observed) or observed < 0:
-            raise ValueError("Observation en mm non valide")
-        result.append({"year": year, "p": probs, "observed_mm": observed})
+        result.append(row)
     if not result:
         raise ValueError("Aucune paire hindcast/observation")
     return sorted(result, key=lambda item: item["year"])
@@ -129,8 +143,12 @@ def skill(pairs: list[tuple[float, float]]) -> float:
 
 def evaluate(rows: list[dict], meta: dict) -> dict:
     validate_manifest(meta)
+    for row in rows:
+        _validate_row(row, meta)
     if len({row["year"] for row in rows}) != len(rows):
         raise ValueError("Années dupliquées")
+    expected_years = set(range(meta["start_year"], meta["end_year"] + 1))
+    missing_years = sorted(expected_years - {row["year"] for row in rows})
     report = {
         "schema": "avantemps.verification-report.v1",
         "status": "insufficient_data",
@@ -143,6 +161,9 @@ def evaluate(rows: list[dict], meta: dict) -> dict:
         "lead_month": meta["lead_month"],
         "n_distinct_years": len(rows),
         "minimum_years": MIN_YEARS,
+        "expected_year_count": len(expected_years),
+        "missing_years": missing_years,
+        "period_complete": not missing_years,
         "reference": "equiprobable climatology (1/3 each)",
         "method": "RPS on LOYO observed terciles; paired yearly bootstrap",
         "limitations": (
@@ -153,6 +174,9 @@ def evaluate(rows: list[dict], meta: dict) -> dict:
         "skill": None,
     }
     if len(rows) < MIN_YEARS:
+        return report
+    if missing_years:
+        report["status"] = "incomplete_period"
         return report
     categories = observed_categories(rows)
     pairs = [(rps(row["p"], category), rps((1/3, 1/3, 1/3), category))

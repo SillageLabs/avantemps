@@ -14,6 +14,7 @@ AVANTEMPS est un projet libre de SillageLabs : rendre les données climatiques c
 - Journal des ajouts, retraits et corrections des observations entre deux versions, visible dans l'interface.
 - API HTTP locale en lecture seule et interface mobile simple, sans services tiers ni compte.
 - **Dossiers territoriaux sourcés** : Nouvelle-Calédonie (relations historiques et bulletins datés), Nantes et Guyane (absence d'évaluation explicite). Aucun calcul de risque local.
+- Banc hors ligne expérimental de vérification des prévisions rétrospectives (RPS/RPSS, terciles calculés en laissant l'année cible de côté). **Aucun score régional réel n'est disponible ni publié.**
 - Tests automatiques, fonctionnement sans Docker et sans accès réseau une fois les données récupérées.
 
 Le prototype ne comporte **ni détection de catastrophe, ni prédiction régionale automatisée, ni notification d'urgence**. Les fiches territoriales sont des documents statiques datés, non un suivi en temps réel.
@@ -30,10 +31,17 @@ python3 -m avantemps.server --data-dir var/data --host 127.0.0.1 --port 18767
 
 Ouvrir ensuite http://127.0.0.1:18767/ . Le serveur ne télécharge aucune donnée : la commande d'ingestion effectue seule la récupération NOAA. Un premier lancement du serveur sans ingestion affiche un message d'absence de données. L'ingestion nécessite un accès sortant HTTPS vers la NOAA. Pour contrôler **sans archiver** un fichier déjà téléchargé : `python3 -m avantemps.ingest --check-file /chemin/RONI.ascii.txt`. Un contrôle de format d'un fichier local ne prouve pas qu'il provient effectivement de la NOAA.
 
+### Vérifier des hindcasts hors ligne
+
+Le module de recherche accepte un manifeste JSON traçable et un CSV de couples probabilités/observations, sans télécharger de fichiers GRIB ni lancer de tâches lourdes. **Ne jamais alimenter l'application avec un score expérimental non relu.** Voir [la méthode et le format](docs/hindcast-verification.md).
+
+Commande : `python3 -m avantemps.verification --manifest ./manifest.json --pairs ./pairs.csv`.
+
 ### API
 
 - `GET /api/health` : fonctionnement local et présence d'archives.
 - `GET /api/territories` : liste des territoires et état de l'étude.
+- `GET /api/verification/status` : statut scientifique (non évalué, aucun score publié).
 - `GET /api/territories/nouvelle-caledonie` : sources officielles, climatologie et bulletins datés ; fonctionne même sans archive NOAA.
 - `GET /api/territories/nantes` et `/api/territories/guyane` : **abstention explicite**, aucune conclusion régionale.
 - `GET /api/roni/latest` : dernier indice disponible, provenance et précautions.
@@ -50,6 +58,7 @@ Le statut « signal chaud/froid/neutre » ne prouve pas à lui seul un épisode 
 - [Sources et qualité scientifique](docs/sources.md)
 - [Contrat du journal de révisions](docs/revisions.md)
 - [Première enquête territoriale : Nouvelle-Calédonie](docs/territorial-pilot.md)
+- [Banc expérimental de vérification saisonnière](docs/hindcast-verification.md)
 - [Charte de sûreté et de traçabilité](docs/principles.md)
 - [Différenciation et concurrents](docs/competition.md)
 - [Feuille de route](docs/roadmap.md)

@@ -25,7 +25,9 @@
 - [x] Fiche territoriale sourcée et catégorisée (climatologie, bulletin daté, observation historique).
 - [x] Affichage d'abstention explicite pour Nantes et Guyane.
 - [ ] Étendre la revue scientifique à des articles évalués et aux séries locales exploitables.
-- [ ] Mesure de qualité de prévision régionale par variable et échéance.
+- [x] Outillage hors ligne de vérification probabiliste expérimentale (RPS/RPSS), avec absence systématique de publication de scores.
+- [ ] Acquisition de vrais hindcasts C3S + observations adaptées ; **aucune mesure réelle de performance territoriale effectuée**.
+- [ ] Audit de la méthodologie hors échantillon et des performances par variable et échéance.
 - [x] Droit d'abstention dans l'API et l'interface pour les territoires non étudiés.
 - [ ] Tester la même abstention pour les prévisions régionales insuffisamment fiables.
 - [ ] Retour utilisateur local avant extension.

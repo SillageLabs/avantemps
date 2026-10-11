@@ -7,10 +7,8 @@ Les produits bruts ne sont jamais versionnés dans Git.
 from __future__ import annotations
 
 import argparse
-import calendar
 import hashlib
 import json
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -119,14 +117,18 @@ def download(plan_obj: dict, output_dir: Path) -> dict:
         client.retrieve(entry["dataset"], entry["request"], str(target))
         if not target.is_file() or target.stat().st_size < 100:
             raise ValueError(f"Le fournisseur n'a pas créé un fichier exploitable pour {key}")
-        blob = target.read_bytes()
+        digest = hashlib.sha256()
+        with target.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        file_size = target.stat().st_size
         manifest["artifacts"].append({
             "role": key, "dataset": entry["dataset"],
             "filename": target.name,
-            "bytes": len(blob),
-            "sha256": hashlib.sha256(blob).hexdigest(),
+            "bytes": file_size,
+            "sha256": digest.hexdigest(),
         })
-        print(f"[CDS] {key}: {len(blob):,} octets, SHA256 {manifest['artifacts'][-1]['sha256']}", flush=True)
+        print(f"[CDS] {key}: {file_size:,} octets, SHA256 {digest.hexdigest()}", flush=True)
     manifest["downloaded_at_utc"] = datetime.now(timezone.utc).isoformat()
     _safe_write(output_dir / "download-manifest.json",
                 (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))

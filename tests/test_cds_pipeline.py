@@ -1,4 +1,5 @@
 """Fixtures 100 % SYNTHÉTIQUES : aucune performance climatique réelle."""
+from contextlib import redirect_stdout
 import csv
 import io
 import hashlib
@@ -9,7 +10,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from avantemps.cds_requests import plan, months_for_window, shifted_month, download
+from avantemps.cds_requests import plan, months_for_window, shifted_month, download, main as cds_main, validate_plan
 from avantemps.pairing import (
     month_days, m_s_to_mm_month, m_day_to_mm_month, pair_from_monthlies,
 )
@@ -42,6 +43,26 @@ class CDSPlanTests(unittest.TestCase):
         self.assertEqual(req["forecast"]["request"]["leadtime_month"], ["1", "2", "3"])
         self.assertEqual(req["forecast"]["request"]["area"], [-19, 163, -23, 169])
         self.assertEqual(req["execution"], "not_performed")
+
+    def test_cli_defaults_to_current_seas51_without_download(self):
+        with patch('sys.argv', ['cds_requests']), redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(cds_main(), 0)
+        request = json.loads(output.getvalue())
+        self.assertEqual(request['system'], '51')
+        self.assertEqual(request['forecast']['request']['system'], '51')
+        self.assertEqual(request['execution'], 'not_performed')
+        self.assertTrue(any('demi-degré' in note for note in request['notes']))
+        validate_plan(request)
+
+    def test_legacy_and_current_versions_cannot_be_silently_relabelled(self):
+        legacy = plan('ecmwf', '5', 1993, 2016, 11, 1)
+        current = plan('ecmwf', '51', 1993, 2016, 11, 1)
+        validate_plan(legacy)
+        validate_plan(current)
+        current['system'] = '5'
+        current['forecast']['request']['system'] = '5'
+        with self.assertRaisesRegex(ValueError, 'modifié'):
+            validate_plan(current)
 
     def test_start_lead_definition(self):
         self.assertEqual(months_for_window(1999, 12, 2), [(2000, 1), (2000, 2), (2000, 3)])
@@ -104,6 +125,13 @@ class PairingTests(unittest.TestCase):
         altered["forecast"]["request"]["system"] = "999"
         with self.assertRaisesRegex(ValueError, "modifié"):
             pair_from_monthlies(altered, self.forecast, self.observation)
+
+    def test_current_seas51_pairs_preserve_version_in_manifest(self):
+        request = plan('ecmwf', '51', 1993, 2016, 11, 1)
+        csv_text, report = pair_from_monthlies(request, *fake_monthlies(request))
+        self.assertEqual(report['manifest']['system_version'], 'system-51')
+        self.assertFalse(report['provenance']['publication_authorized'])
+        self.assertEqual(len(parse_pairs(csv_text, report['manifest'])), 24)
 
     def test_member_alias_cannot_duplicate_an_ensemble_member(self):
         lines = self.forecast.splitlines()

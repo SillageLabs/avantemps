@@ -5,10 +5,12 @@ import unittest
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import urlopen
 
 from avantemps.server import Handler
+from avantemps.freshness import assess_freshness
 from avantemps.storage import store_snapshot
 from test_storage import fixture
 
@@ -74,6 +76,19 @@ class ApiTests(unittest.TestCase):
         with self.assertRaises(HTTPError) as err:
             urlopen(self.base + "/api/unknown", timeout=5)
         self.assertEqual(err.exception.code, 404)
+
+    def test_api_marks_stale_archive_without_changing_verification_date(self):
+        checked = datetime(2026, 10, 11, tzinfo=timezone.utc)
+        now = datetime(2027, 2, 1, tzinfo=timezone.utc)
+        store_snapshot(self.data_dir, fixture(), checked)
+        with patch("avantemps.server.assess_freshness",
+                   side_effect=lambda data: assess_freshness(data, now)):
+            _, data, _ = self.read("/api/roni/latest")
+        self.assertEqual(data["freshness"]["status"], "stale")
+        self.assertEqual(set(data["freshness"]["reasons"]),
+                         {"source_not_checked_recently", "observation_too_old"})
+        self.assertEqual(data["last_checked_at_utc"], checked.isoformat())
+        self.assertEqual(data["summary"]["latest"]["season"], "JAS")
 
     def test_verification_status_never_publishes_a_score(self):
         code, data, _ = self.read("/api/verification/status")
